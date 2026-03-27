@@ -13,9 +13,14 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QMediaFormat>
+#include <QMediaRecorder>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QAction>
+#include <QDir>
+#include <QFileDialog>
+#include <QUrl>
 
 ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     : QWidget(parent),
@@ -29,7 +34,9 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
       startStopButton(new QPushButton(this)),
       screenLabel(new QLabel(tr("Select screen to capture:"), this)),
       windowLabel(new QLabel(tr("Select window to capture:"), this)),
-      videoWidgetLabel(new QLabel(tr("Capture output:"), this))
+      videoWidgetLabel(new QLabel(tr("Capture output:"), this)),
+      mediaRecorder(new QMediaRecorder(this)),
+      recordButton(new QPushButton(tr("Record"), this))
 {
     // Get lists of screens and windows:
     screenList = new ScreenListModel(this);
@@ -40,6 +47,13 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     mediaCaptureSession->setScreenCapture(screenCapture);
     mediaCaptureSession->setWindowCapture(windowCapture);
     mediaCaptureSession->setVideoOutput(videoWidget);
+
+    QMediaFormat format;
+    format.setFileFormat(QMediaFormat::MPEG4);
+    format.setVideoCodec(QMediaFormat::VideoCodec::H264);
+    format.resolveForEncoding(QMediaFormat::NoFlags);
+    mediaRecorder->setMediaFormat(format);
+    mediaCaptureSession->setRecorder(mediaRecorder);
 
     // Setup UI:
 
@@ -56,8 +70,9 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     gridLayout->addWidget(windowLabel, 2, 0);
     gridLayout->addWidget(windowListView, 3, 0);
     gridLayout->addWidget(startStopButton, 4, 0);
+    gridLayout->addWidget(recordButton, 5, 0);
     gridLayout->addWidget(videoWidgetLabel, 0, 1);
-    gridLayout->addWidget(videoWidget, 1, 1, 4, 1);
+    gridLayout->addWidget(videoWidget, 1, 1, 5, 1);
 
     gridLayout->setColumnStretch(1, 1);
     gridLayout->setRowStretch(1, 1);
@@ -75,6 +90,19 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
             &ScreenCapturePreview::onScreenCaptureErrorChanged, Qt::QueuedConnection);
     connect(windowCapture, &QWindowCapture::errorChanged, this,
             &ScreenCapturePreview::onWindowCaptureErrorChanged, Qt::QueuedConnection);
+    connect(recordButton, &QPushButton::clicked, this,
+            &ScreenCapturePreview::onRecordButtonClicked);
+    connect(mediaRecorder, &QMediaRecorder::errorChanged, this, [this]() {
+        if (mediaRecorder->error() != QMediaRecorder::NoError)
+            QMessageBox::warning(this, tr("QMediaRecorder: Error occurred"),
+                                 mediaRecorder->errorString());
+    }, Qt::QueuedConnection);
+    connect(mediaRecorder, &QMediaRecorder::recorderStateChanged, this,
+            [this](QMediaRecorder::RecorderState state) {
+                recordButton->setText(state == QMediaRecorder::RecordingState
+                                          ? tr("Stop Recording")
+                                          : tr("Record"));
+            });
 
     updateActive(SourceType::Screen, true);
 }
@@ -174,4 +202,22 @@ bool ScreenCapturePreview::isActive() const
     default:
         return false;
     }
+}
+
+void ScreenCapturePreview::onRecordButtonClicked()
+{
+    if (mediaRecorder->recorderState() == QMediaRecorder::RecordingState) {
+        mediaRecorder->stop();
+        return;
+    }
+
+    const QString filePath = QFileDialog::getSaveFileName(
+        this, tr("Save Recording"),
+        QDir::homePath() + "/recording.mp4",
+        tr("MP4 Video (*.mp4)"));
+    if (filePath.isEmpty())
+        return;
+
+    mediaRecorder->setOutputLocation(QUrl::fromLocalFile(filePath));
+    mediaRecorder->record();
 }

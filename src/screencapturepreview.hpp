@@ -21,6 +21,7 @@ class QHBoxLayout;
 class QLineEdit;
 class QPushButton;
 class QLabel;
+class QMediaRecorder;
 QT_END_NAMESPACE
 
 QT_USE_NAMESPACE
@@ -39,6 +40,7 @@ private slots:
     void onWindowCaptureErrorChanged();
     void onScreenCaptureErrorChanged();
     void onStartStopButtonClicked();
+    void onRecordButtonClicked();
 
 private:
     enum class SourceType { Screen, Window };
@@ -58,6 +60,8 @@ private:
     QVideoWidget *videoWidget = nullptr;
     QGridLayout *gridLayout = nullptr;
     QPushButton *startStopButton = nullptr;
+    QPushButton *recordButton = nullptr;
+    QMediaRecorder *mediaRecorder = nullptr;
     QLabel *screenLabel = nullptr;
     QLabel *windowLabel = nullptr;
     QLabel *videoWidgetLabel = nullptr;
