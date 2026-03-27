@@ -1,0 +1,19 @@
+# Build output directories
+build/
+
+# macOS
+.DS_Store
+
+# Qt Creator
+*.pro.user
+*.qmlproject.user
+CMakeLists.txt.user
+
+# IDE
+.idea/
+.vscode/*.code-workspace
+
+.cache
+
+/screencapture/
+/dist/
