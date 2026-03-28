@@ -1,6 +1,7 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
+#include "regionselectionoverlay.hpp"
 #include "screencapturepreview.hpp"
 #include "screenlistmodel.hpp"
 #include "windowlistmodel.hpp"
@@ -12,8 +13,12 @@
 #include <QGraphicsView>
 #include <QResizeEvent>
 
-#include <QGridLayout>
+#include <QAction>
+#include <QDir>
+#include <QFileDialog>
 #include <QFrame>
+#include <QGridLayout>
+#include <QGuiApplication>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -21,9 +26,7 @@
 #include <QMediaRecorder>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QAction>
-#include <QDir>
-#include <QFileDialog>
+#include <QTimer>
 #include <QUrl>
 
 ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
@@ -42,7 +45,9 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
       windowLabel(new QLabel(tr("Select window to capture:"), this)),
       videoWidgetLabel(new QLabel(tr("Capture output:"), this)),
       mediaRecorder(new QMediaRecorder(this)),
-      recordButton(new QPushButton(tr("Record"), this))
+      recordButton(new QPushButton(tr("Record"), this)),
+      selectRegionButton(new QPushButton(tr("Select Region…"), this)),
+      regionLabel(new QLabel(tr("No region selected"), this))
 {
     // Get lists of screens and windows:
     screenList = new ScreenListModel(this);
@@ -85,8 +90,10 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     gridLayout->addWidget(windowListView, 3, 0);
     gridLayout->addWidget(startStopButton, 4, 0);
     gridLayout->addWidget(recordButton, 5, 0);
+    gridLayout->addWidget(selectRegionButton, 6, 0);
+    gridLayout->addWidget(regionLabel, 7, 0);
     gridLayout->addWidget(videoWidgetLabel, 0, 1);
-    gridLayout->addWidget(graphicsView, 1, 1, 5, 1);
+    gridLayout->addWidget(graphicsView, 1, 1, 7, 1);
 
     gridLayout->setColumnStretch(1, 1);
     gridLayout->setRowStretch(1, 1);
@@ -120,8 +127,51 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
 
     connect(graphicsVideoItem, &QGraphicsVideoItem::nativeSizeChanged, this,
             [this]() { fitVideoToView(); });
+    connect(selectRegionButton, &QPushButton::clicked, this,
+            &ScreenCapturePreview::onSelectRegionClicked);
 
     updateActive(SourceType::Screen, true);
+}
+
+void ScreenCapturePreview::onSelectRegionClicked()
+{
+    hide();
+    // Brief delay so the window visually disappears before overlays paint
+    QTimer::singleShot(80, this, [this]() {
+        const auto screens = QGuiApplication::screens();
+        for (QScreen *screen : screens) {
+            auto *overlay = new RegionSelectionOverlay(screen);
+            connect(overlay, &RegionSelectionOverlay::regionSelected,
+                    this, &ScreenCapturePreview::onRegionSelected);
+            connect(overlay, &RegionSelectionOverlay::selectionCancelled,
+                    this, &ScreenCapturePreview::onSelectionCancelled);
+            _overlays.append(overlay);
+        }
+        if (!_overlays.isEmpty())
+            _overlays.first()->setFocus();
+    });
+}
+
+void ScreenCapturePreview::onRegionSelected(QRect globalRect)
+{
+    _selectedRegion = globalRect;
+    qDeleteAll(_overlays);
+    _overlays.clear();
+    show();
+    regionLabel->setText(tr("Region: %1×%2 at (%3, %4)")
+                             .arg(_selectedRegion.width())
+                             .arg(_selectedRegion.height())
+                             .arg(_selectedRegion.x())
+                             .arg(_selectedRegion.y()));
+}
+
+void ScreenCapturePreview::onSelectionCancelled()
+{
+    qDeleteAll(_overlays);
+    _overlays.clear();
+    _selectedRegion = QRect();
+    regionLabel->setText(tr("No region selected"));
+    show();
 }
 
 ScreenCapturePreview::~ScreenCapturePreview() = default;

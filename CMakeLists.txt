@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 
 project(pulse-pro VERSION 0.1.0 LANGUAGES CXX)
 
+if(APPLE)
+    enable_language(OBJCXX)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -19,7 +23,16 @@ set(PULSE_SOURCES
     src/screenlistmodel.cpp
     src/windowlistmodel.hpp
     src/windowlistmodel.cpp
+    src/regionselectionoverlay.hpp
+    src/regionselectionoverlay.cpp
 )
+
+if(APPLE)
+    list(APPEND PULSE_SOURCES
+        src/macoswindowutils.h
+        src/macoswindowutils.mm
+    )
+endif()
 
 qt_add_executable(pulse-pro
     MANUAL_FINALIZATION

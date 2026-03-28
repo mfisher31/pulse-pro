@@ -33,6 +33,23 @@ Currently it's...
 - **Includes**: Qt headers before project headers; alphabetically within each group
 - Prefer `const` references for non-trivial parameters; pass value-type Qt classes by value
 
+## Documentation
+
+- Use Doxygen `/** ... */` block comments on all public and protected declarations in headers
+- Format:
+  ```cpp
+  /**
+      Brief one-sentence description.
+  
+      @param paramName Description of parameter.
+      @param paramName2 Description of parameter.
+      @returns Description of return value.
+      @note Any important usage constraints or threading notes.
+  */
+  ```
+- Inline `//` comments are fine for implementation details inside `.cpp` files
+- Do not duplicate the Doxygen comment in the `.cpp` — header only
+
 ## Code Standards
 
 - C++20, Qt6 latest stable
