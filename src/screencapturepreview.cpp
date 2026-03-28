@@ -7,9 +7,13 @@
 
 #include <QMediaCaptureSession>
 #include <QScreenCapture>
-#include <QVideoWidget>
+#include <QGraphicsScene>
+#include <QGraphicsVideoItem>
+#include <QGraphicsView>
+#include <QResizeEvent>
 
 #include <QGridLayout>
+#include <QFrame>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -29,7 +33,9 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
       screenCapture(new QScreenCapture(this)),
       windowCapture(new QWindowCapture(this)),
       mediaCaptureSession(new QMediaCaptureSession(this)),
-      videoWidget(new QVideoWidget(this)),
+      graphicsScene(new QGraphicsScene(this)),
+      graphicsVideoItem(new QGraphicsVideoItem ()),
+      graphicsView(new QGraphicsView(graphicsScene, this)),
       gridLayout(new QGridLayout(this)),
       startStopButton(new QPushButton(this)),
       screenLabel(new QLabel(tr("Select screen to capture:"), this)),
@@ -46,7 +52,15 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
 
     mediaCaptureSession->setScreenCapture(screenCapture);
     mediaCaptureSession->setWindowCapture(windowCapture);
-    mediaCaptureSession->setVideoOutput(videoWidget);
+
+    graphicsScene->addItem(graphicsVideoItem);
+    graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    graphicsView->setFrameStyle(QFrame::NoFrame);
+    graphicsView->setAlignment(Qt::AlignCenter);
+    graphicsView->setBackgroundBrush(Qt::black);
+
+    mediaCaptureSession->setVideoOutput(graphicsVideoItem);
 
     QMediaFormat format;
     format.setFileFormat(QMediaFormat::MPEG4);
@@ -72,7 +86,7 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     gridLayout->addWidget(startStopButton, 4, 0);
     gridLayout->addWidget(recordButton, 5, 0);
     gridLayout->addWidget(videoWidgetLabel, 0, 1);
-    gridLayout->addWidget(videoWidget, 1, 1, 5, 1);
+    gridLayout->addWidget(graphicsView, 1, 1, 5, 1);
 
     gridLayout->setColumnStretch(1, 1);
     gridLayout->setRowStretch(1, 1);
@@ -103,6 +117,9 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
                                           ? tr("Stop Recording")
                                           : tr("Record"));
             });
+
+    connect(graphicsVideoItem, &QGraphicsVideoItem::nativeSizeChanged, this,
+            [this]() { fitVideoToView(); });
 
     updateActive(SourceType::Screen, true);
 }
@@ -220,4 +237,23 @@ void ScreenCapturePreview::onRecordButtonClicked()
 
     mediaRecorder->setOutputLocation(QUrl::fromLocalFile(filePath));
     mediaRecorder->record();
+}
+
+void ScreenCapturePreview::resizeEvent(QResizeEvent *event)
+{
+    QWidget::resizeEvent(event);
+    fitVideoToView();
+}
+
+void ScreenCapturePreview::fitVideoToView()
+{
+    const QSizeF native = graphicsVideoItem->nativeSize();
+    if (native.isEmpty())
+        return;
+    const QSizeF viewSize = graphicsView->viewport()->size();
+    const QSizeF fitted = native.scaled(viewSize, Qt::KeepAspectRatio);
+    graphicsVideoItem->setSize(fitted);
+    graphicsVideoItem->setPos((viewSize.width() - fitted.width()) / 2.0,
+                              (viewSize.height() - fitted.height()) / 2.0);
+    graphicsScene->setSceneRect(QRectF(QPointF(), viewSize));
 }

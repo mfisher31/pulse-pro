@@ -15,7 +15,9 @@ class WindowListModel;
 QT_BEGIN_NAMESPACE
 class QListView;
 class QMediaCaptureSession;
-class QVideoWidget;
+class QGraphicsView;
+class QGraphicsScene;
+class QGraphicsVideoItem;
 class QGridLayout;
 class QHBoxLayout;
 class QLineEdit;
@@ -34,6 +36,9 @@ public:
     explicit ScreenCapturePreview(QWidget *parent = nullptr);
     ~ScreenCapturePreview() override;
 
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+
 private slots:
     void onCurrentScreenSelectionChanged(QItemSelection index);
     void onCurrentWindowSelectionChanged(QItemSelection index);
@@ -47,6 +52,7 @@ private:
 
     void updateActive(SourceType sourceType, bool active);
     void updateStartStopButtonText();
+    void fitVideoToView();
     bool isActive() const;
 
 private:
@@ -57,7 +63,9 @@ private:
     QScreenCapture *screenCapture = nullptr;
     QWindowCapture *windowCapture = nullptr;
     QMediaCaptureSession *mediaCaptureSession = nullptr;
-    QVideoWidget *videoWidget = nullptr;
+    QGraphicsScene *graphicsScene = nullptr;
+    QGraphicsVideoItem *graphicsVideoItem = nullptr;
+    QGraphicsView *graphicsView = nullptr;
     QGridLayout *gridLayout = nullptr;
     QPushButton *startStopButton = nullptr;
     QPushButton *recordButton = nullptr;
