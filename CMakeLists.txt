@@ -57,7 +57,9 @@ if(NOT LINUX)
     set_target_properties(pulse-pro PROPERTIES OUTPUT_NAME "PulsePro")
 endif()
 
-qt_add_ios_ffmpeg_libraries(pulse-pro)
+if(IOS)
+    qt_add_ios_ffmpeg_libraries(pulse-pro)
+endif()
 
 set(PULSE_INSTALLDIR ".")
 install(TARGETS pulse-pro

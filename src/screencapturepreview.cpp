@@ -67,15 +67,28 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
 
     mediaCaptureSession->setVideoOutput(graphicsVideoItem);
 
+    // All three (fileFormat, videoCodec, audioCodec) must be specified so that
+    // QMediaRecorder::record() does not re-resolve the format and override our
+    // choices. If any field is unspecified, Qt calls resolveFormat(RequiresVideo)
+    // internally and will pick whatever it deems "best" — on Linux that resolves
+    // to hevc_vaapi, which fails when the VAAPI driver lacks an HEVC profile.
+    //
+    // On Linux, Qt's bundled FFmpeg omits libx264 (GPL), so H.264 software
+    // encoding is unavailable. MPEG-4 Part 2 ("mpeg4" muxer) is always present
+    // as a pure-software path. AAC is built into Qt's FFmpeg on all platforms.
     QMediaFormat format;
     format.setFileFormat(QMediaFormat::MPEG4);
+    format.setAudioCodec(QMediaFormat::AudioCodec::AAC);
+#ifdef Q_OS_LINUX
+    // Use MPEG-4 Part 2 — guaranteed software encoder, no VAAPI required.
+    format.setVideoCodec(QMediaFormat::VideoCodec::MPEG4);
+#else
     format.setVideoCodec(QMediaFormat::VideoCodec::H264);
-    format.resolveForEncoding(QMediaFormat::NoFlags);
+#endif
     mediaRecorder->setMediaFormat(format);
     mediaCaptureSession->setRecorder(mediaRecorder);
 
     // Setup UI:
-
     screenListView->setModel(screenList);
     windowListView->setModel(windowList);
 
