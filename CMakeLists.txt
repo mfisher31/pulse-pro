@@ -1,3 +1,6 @@
+# Copyright (C) 2026 Medical Informatics Engineering.
+# SPDX-License-Identifier: LGPL-3.0-or-later
+
 cmake_minimum_required(VERSION 3.25)
 
 project(pulse-pro VERSION 0.1.0 LANGUAGES CXX)

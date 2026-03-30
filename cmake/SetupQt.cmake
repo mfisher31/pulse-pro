@@ -1,3 +1,5 @@
+# Copyright (C) 2026 Medical Informatics Engineering.
+# SPDX-License-Identifier: LGPL-3.0-or-later
 
 # Auto-discover Qt from the standard Qt Community installer location (~Qt/<version>/macos)
 # so developers don't need to set CMAKE_PREFIX_PATH or any environment variables.
