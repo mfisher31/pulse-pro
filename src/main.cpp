@@ -5,6 +5,8 @@
 
 #include "screencapturepreview.hpp"
 
+using pulse::ScreenCapturePreview;
+
 int main(int argc, char *argv[])
 {
     QApplication app (argc, argv);

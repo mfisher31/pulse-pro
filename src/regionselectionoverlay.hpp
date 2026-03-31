@@ -1,8 +1,7 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#ifndef REGIONSELECTIONOVERLAY_H
-#define REGIONSELECTIONOVERLAY_H
+#pragma once
 
 #include <QWidget>
 
@@ -11,6 +10,8 @@ class QScreen;
 QT_END_NAMESPACE
 
 QT_USE_NAMESPACE
+
+namespace pulse {
 
 class RegionSelectionOverlay : public QWidget
 {
@@ -36,4 +37,4 @@ private:
     bool _dragging = false;
 };
 
-#endif // REGIONSELECTIONOVERLAY_H
+}

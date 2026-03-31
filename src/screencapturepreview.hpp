@@ -1,17 +1,12 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#ifndef SCREENCAPTUREPREVIEW_H
-#define SCREENCAPTUREPREVIEW_H
+#pragma once
 
 #include <QItemSelection>
 #include <QScreenCapture>
 #include <QWidget>
 #include <QWindowCapture>
-
-class RegionSelectionOverlay;
-class ScreenListModel;
-class WindowListModel;
 
 QT_BEGIN_NAMESPACE
 class QGraphicsScene;
@@ -29,6 +24,12 @@ class QTimer;
 QT_END_NAMESPACE
 
 QT_USE_NAMESPACE
+
+namespace pulse {
+
+class RegionSelectionOverlay;
+class ScreenListModel;
+class WindowListModel;
 
 class ScreenCapturePreview : public QWidget
 {
@@ -85,4 +86,4 @@ private:
     QList<RegionSelectionOverlay *> _overlays;
 };
 
-#endif // SCREENCAPTUREPREVIEW_H
+}

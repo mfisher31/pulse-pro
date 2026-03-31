@@ -1,9 +1,9 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "macoswindowutils.h"
-
 #import <AppKit/AppKit.h>
+
+#include "macoswindowutils.h"
 
 namespace pulse {
 

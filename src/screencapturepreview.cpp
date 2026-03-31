@@ -1,11 +1,6 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "regionselectionoverlay.hpp"
-#include "screencapturepreview.hpp"
-#include "screenlistmodel.hpp"
-#include "windowlistmodel.hpp"
-
 #include <QMediaCaptureSession>
 #include <QScreenCapture>
 #include <QGraphicsScene>
@@ -28,6 +23,13 @@
 #include <QPushButton>
 #include <QTimer>
 #include <QUrl>
+
+#include "regionselectionoverlay.hpp"
+#include "screencapturepreview.hpp"
+#include "screenlistmodel.hpp"
+#include "windowlistmodel.hpp"
+
+namespace pulse {
 
 ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     : QWidget(parent),
@@ -319,4 +321,6 @@ void ScreenCapturePreview::fitVideoToView()
     graphicsVideoItem->setPos((viewSize.width() - fitted.width()) / 2.0,
                               (viewSize.height() - fitted.height()) / 2.0);
     graphicsScene->setSceneRect(QRectF(QPointF(), viewSize));
+}
+
 }

@@ -1,17 +1,19 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
+#include <QGuiApplication>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QPainter>
+#include <QScreen>
+
 #include "regionselectionoverlay.hpp"
 
 #ifdef Q_OS_MACOS
 #include "macoswindowutils.h"
 #endif
 
-#include <QGuiApplication>
-#include <QKeyEvent>
-#include <QMouseEvent>
-#include <QPainter>
-#include <QScreen>
+namespace pulse {
 
 RegionSelectionOverlay::RegionSelectionOverlay(QScreen *screen, QWidget *parent)
     : QWidget(parent)
@@ -99,4 +101,6 @@ void RegionSelectionOverlay::keyPressEvent(QKeyEvent *event)
         emit selectionCancelled();
     else
         QWidget::keyPressEvent(event);
+}
+
 }
