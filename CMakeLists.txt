@@ -26,15 +26,15 @@ set(PULSE_SOURCES
     src/screenlistmodel.cpp
     src/windowlistmodel.hpp
     src/windowlistmodel.cpp
+    src/windowutil.hpp
     src/regionselectionoverlay.hpp
     src/regionselectionoverlay.cpp
 )
 
 if(APPLE)
-    list(APPEND PULSE_SOURCES
-        src/macoswindowutils.h
-        src/macoswindowutils.mm
-    )
+    list(APPEND PULSE_SOURCES src/windowutil.mm)
+else()
+    list(APPEND PULSE_SOURCES src/windowutil.cpp)
 endif()
 
 qt_add_executable(pulse-pro

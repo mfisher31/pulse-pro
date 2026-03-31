@@ -8,10 +8,7 @@
 #include <QScreen>
 
 #include "regionselectionoverlay.hpp"
-
-#ifdef Q_OS_MACOS
-#include "macoswindowutils.h"
-#endif
+#include "windowutil.hpp"
 
 namespace pulse {
 
@@ -27,9 +24,7 @@ RegionSelectionOverlay::RegionSelectionOverlay(QScreen* screen, QWidget* parent)
     setGeometry(screen->geometry());
     show();
 
-#ifdef Q_OS_MACOS
     pulse::applyOverlayWindowBehavior(static_cast<quintptr>(winId()));
-#endif
 }
 
 void RegionSelectionOverlay::paintEvent(QPaintEvent*)

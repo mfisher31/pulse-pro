@@ -1,6 +1,6 @@
 # Pulse Pro – Copilot Instructions
 
-Pulse Pro is a **professional-grade, broadcast-quality audio/video/image application** built with Qt6 and C++20 targeting macOS, with cross-platform intent.
+Pulse Pro is a **professional-grade, broadcast-quality audio/video/image application** built with Qt6 and C++20.
 
 ## Graphics & Performance
 

@@ -3,7 +3,7 @@
 
 #import <AppKit/AppKit.h>
 
-#include "macoswindowutils.h"
+#include "windowutil.hpp"
 
 namespace pulse {
 
@@ -14,9 +14,12 @@ void applyOverlayWindowBehavior(quintptr windowId)
     if (!window)
         return;
 
+    // clang-format off
     window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces
-        | NSWindowCollectionBehaviorStationary | NSWindowCollectionBehaviorFullScreenAuxiliary
-        | NSWindowCollectionBehaviorIgnoresCycle;
+                              |  NSWindowCollectionBehaviorStationary 
+                              |  NSWindowCollectionBehaviorFullScreenAuxiliary
+                              |  NSWindowCollectionBehaviorIgnoresCycle;
+    // clang-format on
 }
 
 }

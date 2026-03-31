@@ -5,15 +5,17 @@
 
 #include <QtGlobal>
 
-#ifdef Q_OS_MACOS
+QT_USE_NAMESPACE
 
 namespace pulse {
+
 /** 
-    Makes a window appear on the current Space instead of triggering a Space
+    Causes a window appear on the current Space instead of triggering a Space
     transition. Must be called after the widget's native window is created (i.e.
     after show()/showFullScreen()).
+
+    @param windowId Native window identifier for the widget window.
 */
 void applyOverlayWindowBehavior(quintptr windowId);
-}
 
-#endif // Q_OS_MACOS
+}
