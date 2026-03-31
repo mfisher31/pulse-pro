@@ -9,15 +9,14 @@ namespace pulse {
 
 void applyOverlayWindowBehavior(quintptr windowId)
 {
-    NSView *view = reinterpret_cast<NSView *>(windowId);
-    NSWindow *window = [view window];
+    NSView* view = reinterpret_cast<NSView*>(windowId);
+    NSWindow* window = [view window];
     if (!window)
         return;
 
     window.collectionBehavior = NSWindowCollectionBehaviorCanJoinAllSpaces
-                              | NSWindowCollectionBehaviorStationary
-                              | NSWindowCollectionBehaviorFullScreenAuxiliary
-                              | NSWindowCollectionBehaviorIgnoresCycle;
+        | NSWindowCollectionBehaviorStationary | NSWindowCollectionBehaviorFullScreenAuxiliary
+        | NSWindowCollectionBehaviorIgnoresCycle;
 }
 
 }

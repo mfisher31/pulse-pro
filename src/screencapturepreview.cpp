@@ -1,12 +1,12 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include <QMediaCaptureSession>
-#include <QScreenCapture>
 #include <QGraphicsScene>
 #include <QGraphicsVideoItem>
 #include <QGraphicsView>
+#include <QMediaCaptureSession>
 #include <QResizeEvent>
+#include <QScreenCapture>
 
 #include <QAction>
 #include <QDir>
@@ -31,25 +31,25 @@
 
 namespace pulse {
 
-ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
-    : QWidget(parent),
-      screenListView(new QListView(this)),
-      windowListView(new QListView(this)),
-      screenCapture(new QScreenCapture(this)),
-      windowCapture(new QWindowCapture(this)),
-      mediaCaptureSession(new QMediaCaptureSession(this)),
-      graphicsScene(new QGraphicsScene(this)),
-      graphicsVideoItem(new QGraphicsVideoItem ()),
-      graphicsView(new QGraphicsView(graphicsScene, this)),
-      gridLayout(new QGridLayout(this)),
-      startStopButton(new QPushButton(this)),
-      screenLabel(new QLabel(tr("Select screen to capture:"), this)),
-      windowLabel(new QLabel(tr("Select window to capture:"), this)),
-      videoWidgetLabel(new QLabel(tr("Capture output:"), this)),
-      mediaRecorder(new QMediaRecorder(this)),
-      recordButton(new QPushButton(tr("Record"), this)),
-      selectRegionButton(new QPushButton(tr("Select Region…"), this)),
-      regionLabel(new QLabel(tr("No region selected"), this))
+ScreenCapturePreview::ScreenCapturePreview(QWidget* parent)
+    : QWidget(parent)
+    , screenListView(new QListView(this))
+    , windowListView(new QListView(this))
+    , screenCapture(new QScreenCapture(this))
+    , windowCapture(new QWindowCapture(this))
+    , mediaCaptureSession(new QMediaCaptureSession(this))
+    , graphicsScene(new QGraphicsScene(this))
+    , graphicsVideoItem(new QGraphicsVideoItem())
+    , graphicsView(new QGraphicsView(graphicsScene, this))
+    , gridLayout(new QGridLayout(this))
+    , startStopButton(new QPushButton(this))
+    , screenLabel(new QLabel(tr("Select screen to capture:"), this))
+    , windowLabel(new QLabel(tr("Select window to capture:"), this))
+    , videoWidgetLabel(new QLabel(tr("Capture output:"), this))
+    , mediaRecorder(new QMediaRecorder(this))
+    , recordButton(new QPushButton(tr("Record"), this))
+    , selectRegionButton(new QPushButton(tr("Select Region…"), this))
+    , regionLabel(new QLabel(tr("No region selected"), this))
 {
     // Get lists of screens and windows:
     screenList = new ScreenListModel(this);
@@ -116,33 +116,54 @@ ScreenCapturePreview::ScreenCapturePreview(QWidget *parent)
     gridLayout->setColumnMinimumWidth(1, 400);
     gridLayout->setRowMinimumHeight(3, 1);
 
-    connect(screenListView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+    connect(screenListView->selectionModel(),
+            &QItemSelectionModel::selectionChanged,
+            this,
             &ScreenCapturePreview::onCurrentScreenSelectionChanged);
-    connect(windowListView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+    connect(windowListView->selectionModel(),
+            &QItemSelectionModel::selectionChanged,
+            this,
             &ScreenCapturePreview::onCurrentWindowSelectionChanged);
-    connect(startStopButton, &QPushButton::clicked, this,
+    connect(startStopButton,
+            &QPushButton::clicked,
+            this,
             &ScreenCapturePreview::onStartStopButtonClicked);
-    connect(screenCapture, &QScreenCapture::errorChanged, this,
-            &ScreenCapturePreview::onScreenCaptureErrorChanged, Qt::QueuedConnection);
-    connect(windowCapture, &QWindowCapture::errorChanged, this,
-            &ScreenCapturePreview::onWindowCaptureErrorChanged, Qt::QueuedConnection);
-    connect(recordButton, &QPushButton::clicked, this,
-            &ScreenCapturePreview::onRecordButtonClicked);
-    connect(mediaRecorder, &QMediaRecorder::errorChanged, this, [this]() {
-        if (mediaRecorder->error() != QMediaRecorder::NoError)
-            QMessageBox::warning(this, tr("QMediaRecorder: Error occurred"),
-                                 mediaRecorder->errorString());
-    }, Qt::QueuedConnection);
-    connect(mediaRecorder, &QMediaRecorder::recorderStateChanged, this,
+    connect(screenCapture,
+            &QScreenCapture::errorChanged,
+            this,
+            &ScreenCapturePreview::onScreenCaptureErrorChanged,
+            Qt::QueuedConnection);
+    connect(windowCapture,
+            &QWindowCapture::errorChanged,
+            this,
+            &ScreenCapturePreview::onWindowCaptureErrorChanged,
+            Qt::QueuedConnection);
+    connect(
+        recordButton, &QPushButton::clicked, this, &ScreenCapturePreview::onRecordButtonClicked);
+    connect(
+        mediaRecorder,
+        &QMediaRecorder::errorChanged,
+        this,
+        [this]() {
+            if (mediaRecorder->error() != QMediaRecorder::NoError)
+                QMessageBox::warning(
+                    this, tr("QMediaRecorder: Error occurred"), mediaRecorder->errorString());
+        },
+        Qt::QueuedConnection);
+    connect(mediaRecorder,
+            &QMediaRecorder::recorderStateChanged,
+            this,
             [this](QMediaRecorder::RecorderState state) {
-                recordButton->setText(state == QMediaRecorder::RecordingState
-                                          ? tr("Stop Recording")
-                                          : tr("Record"));
+                recordButton->setText(state == QMediaRecorder::RecordingState ? tr("Stop Recording")
+                                                                              : tr("Record"));
             });
 
-    connect(graphicsVideoItem, &QGraphicsVideoItem::nativeSizeChanged, this,
-            [this]() { fitVideoToView(); });
-    connect(selectRegionButton, &QPushButton::clicked, this,
+    connect(graphicsVideoItem, &QGraphicsVideoItem::nativeSizeChanged, this, [this]() {
+        fitVideoToView();
+    });
+    connect(selectRegionButton,
+            &QPushButton::clicked,
+            this,
             &ScreenCapturePreview::onSelectRegionClicked);
 
     updateActive(SourceType::Screen, true);
@@ -154,12 +175,16 @@ void ScreenCapturePreview::onSelectRegionClicked()
     // Brief delay so the window visually disappears before overlays paint
     QTimer::singleShot(80, this, [this]() {
         const auto screens = QGuiApplication::screens();
-        for (QScreen *screen : screens) {
-            auto *overlay = new RegionSelectionOverlay(screen);
-            connect(overlay, &RegionSelectionOverlay::regionSelected,
-                    this, &ScreenCapturePreview::onRegionSelected);
-            connect(overlay, &RegionSelectionOverlay::selectionCancelled,
-                    this, &ScreenCapturePreview::onSelectionCancelled);
+        for (QScreen* screen : screens) {
+            auto* overlay = new RegionSelectionOverlay(screen);
+            connect(overlay,
+                    &RegionSelectionOverlay::regionSelected,
+                    this,
+                    &ScreenCapturePreview::onRegionSelected);
+            connect(overlay,
+                    &RegionSelectionOverlay::selectionCancelled,
+                    this,
+                    &ScreenCapturePreview::onSelectionCancelled);
             _overlays.append(overlay);
         }
         if (!_overlays.isEmpty())
@@ -209,8 +234,9 @@ void ScreenCapturePreview::onCurrentWindowSelectionChanged(QItemSelection select
         auto window = windowList->window(indexes.front());
         if (!window.isValid()) {
             const auto questionResult = QMessageBox::question(
-                    this, tr("Invalid window"),
-                    tr("The window is no longer valid. Update the list of windows?"));
+                this,
+                tr("Invalid window"),
+                tr("The window is no longer valid. Update the list of windows?"));
             if (questionResult == QMessageBox::Yes) {
                 updateActive(SourceType::Window, false);
 
@@ -294,9 +320,7 @@ void ScreenCapturePreview::onRecordButtonClicked()
     }
 
     const QString filePath = QFileDialog::getSaveFileName(
-        this, tr("Save Recording"),
-        QDir::homePath() + "/recording.mp4",
-        tr("MP4 Video (*.mp4)"));
+        this, tr("Save Recording"), QDir::homePath() + "/recording.mp4", tr("MP4 Video (*.mp4)"));
     if (filePath.isEmpty())
         return;
 
@@ -304,7 +328,7 @@ void ScreenCapturePreview::onRecordButtonClicked()
     mediaRecorder->record();
 }
 
-void ScreenCapturePreview::resizeEvent(QResizeEvent *event)
+void ScreenCapturePreview::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
     fitVideoToView();

@@ -8,17 +8,19 @@
 
 QT_USE_NAMESPACE
 
+namespace pulse {
+
 class WindowListModel : public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    explicit WindowListModel(QObject *parent = nullptr);
+    explicit WindowListModel(QObject* parent = nullptr);
 
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex& index, int role = Qt::DisplayRole) const override;
 
-    QCapturableWindow window(const QModelIndex &index) const;
+    QCapturableWindow window(const QModelIndex& index) const;
 
 public Q_SLOTS:
     void populate();
@@ -26,3 +28,5 @@ public Q_SLOTS:
 private:
     QList<QCapturableWindow> _windows;
 };
+
+}

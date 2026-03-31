@@ -36,11 +36,11 @@ class ScreenCapturePreview : public QWidget
     Q_OBJECT
 
 public:
-    explicit ScreenCapturePreview(QWidget *parent = nullptr);
+    explicit ScreenCapturePreview(QWidget* parent = nullptr);
     ~ScreenCapturePreview() override;
 
 protected:
-    void resizeEvent(QResizeEvent *event) override;
+    void resizeEvent(QResizeEvent* event) override;
 
 private slots:
     void onCurrentScreenSelectionChanged(QItemSelection index);
@@ -54,7 +54,11 @@ private slots:
     void onSelectionCancelled();
 
 private:
-    enum class SourceType { Screen, Window };
+    enum class SourceType
+    {
+        Screen,
+        Window
+    };
 
     void updateActive(SourceType sourceType, bool active);
     void updateStartStopButtonText();
@@ -62,28 +66,28 @@ private:
     bool isActive() const;
 
 private:
-    ScreenListModel *screenList = nullptr;
-    WindowListModel *windowList = nullptr;
-    QListView *screenListView = nullptr;
-    QListView *windowListView = nullptr;
-    QScreenCapture *screenCapture = nullptr;
-    QWindowCapture *windowCapture = nullptr;
-    QMediaCaptureSession *mediaCaptureSession = nullptr;
-    QGraphicsScene *graphicsScene = nullptr;
-    QGraphicsVideoItem *graphicsVideoItem = nullptr;
-    QGraphicsView *graphicsView = nullptr;
-    QGridLayout *gridLayout = nullptr;
-    QPushButton *startStopButton = nullptr;
-    QPushButton *recordButton = nullptr;
-    QPushButton *selectRegionButton = nullptr;
-    QLabel *regionLabel = nullptr;
-    QMediaRecorder *mediaRecorder = nullptr;
-    QLabel *screenLabel = nullptr;
-    QLabel *windowLabel = nullptr;
-    QLabel *videoWidgetLabel = nullptr;
+    ScreenListModel* screenList = nullptr;
+    WindowListModel* windowList = nullptr;
+    QListView* screenListView = nullptr;
+    QListView* windowListView = nullptr;
+    QScreenCapture* screenCapture = nullptr;
+    QWindowCapture* windowCapture = nullptr;
+    QMediaCaptureSession* mediaCaptureSession = nullptr;
+    QGraphicsScene* graphicsScene = nullptr;
+    QGraphicsVideoItem* graphicsVideoItem = nullptr;
+    QGraphicsView* graphicsView = nullptr;
+    QGridLayout* gridLayout = nullptr;
+    QPushButton* startStopButton = nullptr;
+    QPushButton* recordButton = nullptr;
+    QPushButton* selectRegionButton = nullptr;
+    QLabel* regionLabel = nullptr;
+    QMediaRecorder* mediaRecorder = nullptr;
+    QLabel* screenLabel = nullptr;
+    QLabel* windowLabel = nullptr;
+    QLabel* videoWidgetLabel = nullptr;
     SourceType sourceType = SourceType::Screen;
     QRect _selectedRegion;
-    QList<RegionSelectionOverlay *> _overlays;
+    QList<RegionSelectionOverlay*> _overlays;
 };
 
 }

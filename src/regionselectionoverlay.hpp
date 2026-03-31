@@ -18,18 +18,18 @@ class RegionSelectionOverlay : public QWidget
     Q_OBJECT
 
 public:
-    explicit RegionSelectionOverlay(QScreen *screen, QWidget *parent = nullptr);
+    explicit RegionSelectionOverlay(QScreen* screen, QWidget* parent = nullptr);
 
 signals:
     void regionSelected(QRect globalRect);
     void selectionCancelled();
 
 protected:
-    void paintEvent(QPaintEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
-    void keyPressEvent(QKeyEvent *event) override;
+    void paintEvent(QPaintEvent* event) override;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
+    void keyPressEvent(QKeyEvent* event) override;
 
 private:
     QPoint _dragStart;

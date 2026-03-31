@@ -1,35 +1,37 @@
 // Copyright (C) 2026 Medical Informatics Engineering.
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-#include "screenlistmodel.hpp"
-
 #include <QGuiApplication>
 #include <QScreen>
 
 #include <QTextStream>
 
-ScreenListModel::ScreenListModel(QObject *parent) :
-      QAbstractListModel(parent)
+#include "screenlistmodel.hpp"
+
+namespace pulse {
+
+ScreenListModel::ScreenListModel(QObject* parent)
+    : QAbstractListModel(parent)
 {
-    auto *app = qApp;
+    auto* app = qApp;
     connect(app, &QGuiApplication::screenAdded, this, &ScreenListModel::screensChanged);
     connect(app, &QGuiApplication::screenRemoved, this, &ScreenListModel::screensChanged);
     connect(app, &QGuiApplication::primaryScreenChanged, this, &ScreenListModel::screensChanged);
 }
 
-int ScreenListModel::rowCount(const QModelIndex &) const
+int ScreenListModel::rowCount(const QModelIndex&) const
 {
     return QGuiApplication::screens().size();
 }
 
-QVariant ScreenListModel::data(const QModelIndex &index, int role) const
+QVariant ScreenListModel::data(const QModelIndex& index, int role) const
 {
     const auto screenList = QGuiApplication::screens();
     Q_ASSERT(index.isValid());
     Q_ASSERT(index.row() <= screenList.size());
 
     if (role == Qt::DisplayRole) {
-        auto *screen = screenList.at(index.row());
+        auto* screen = screenList.at(index.row());
         QString description;
         QTextStream str(&description);
         str << '"' << screen->name() << "\" " << screen->size().width() << 'x'
@@ -40,7 +42,7 @@ QVariant ScreenListModel::data(const QModelIndex &index, int role) const
     return {};
 }
 
-QScreen *ScreenListModel::screen(const QModelIndex &index) const
+QScreen* ScreenListModel::screen(const QModelIndex& index) const
 {
     return QGuiApplication::screens().value(index.row());
 }
@@ -49,4 +51,6 @@ void ScreenListModel::screensChanged()
 {
     beginResetModel();
     endResetModel();
+}
+
 }

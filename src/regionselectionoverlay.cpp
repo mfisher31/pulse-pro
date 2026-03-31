@@ -15,7 +15,7 @@
 
 namespace pulse {
 
-RegionSelectionOverlay::RegionSelectionOverlay(QScreen *screen, QWidget *parent)
+RegionSelectionOverlay::RegionSelectionOverlay(QScreen* screen, QWidget* parent)
     : QWidget(parent)
 {
     setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint | Qt::Tool);
@@ -32,7 +32,7 @@ RegionSelectionOverlay::RegionSelectionOverlay(QScreen *screen, QWidget *parent)
 #endif
 }
 
-void RegionSelectionOverlay::paintEvent(QPaintEvent *)
+void RegionSelectionOverlay::paintEvent(QPaintEvent*)
 {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing, false);
@@ -58,7 +58,7 @@ void RegionSelectionOverlay::paintEvent(QPaintEvent *)
     painter.drawLine(cursor.x(), 0, cursor.x(), height());
 }
 
-void RegionSelectionOverlay::mousePressEvent(QMouseEvent *event)
+void RegionSelectionOverlay::mousePressEvent(QMouseEvent* event)
 {
     if (event->button() != Qt::LeftButton)
         return;
@@ -68,14 +68,14 @@ void RegionSelectionOverlay::mousePressEvent(QMouseEvent *event)
     update();
 }
 
-void RegionSelectionOverlay::mouseMoveEvent(QMouseEvent *event)
+void RegionSelectionOverlay::mouseMoveEvent(QMouseEvent* event)
 {
     if (_dragging)
         _selection = QRect(_dragStart, event->pos()).normalized();
     update();
 }
 
-void RegionSelectionOverlay::mouseReleaseEvent(QMouseEvent *event)
+void RegionSelectionOverlay::mouseReleaseEvent(QMouseEvent* event)
 {
     if (event->button() != Qt::LeftButton || !_dragging)
         return;
@@ -90,12 +90,12 @@ void RegionSelectionOverlay::mouseReleaseEvent(QMouseEvent *event)
     }
 
     // Convert local coords to global screen coordinates
-    const QRect globalRect = QRect(mapToGlobal(_selection.topLeft()),
-                                   mapToGlobal(_selection.bottomRight()));
+    const QRect globalRect
+        = QRect(mapToGlobal(_selection.topLeft()), mapToGlobal(_selection.bottomRight()));
     emit regionSelected(globalRect);
 }
 
-void RegionSelectionOverlay::keyPressEvent(QKeyEvent *event)
+void RegionSelectionOverlay::keyPressEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Escape)
         emit selectionCancelled();

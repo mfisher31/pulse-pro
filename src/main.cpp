@@ -7,9 +7,9 @@
 
 using pulse::ScreenCapturePreview;
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    QApplication app (argc, argv);
+    QApplication app(argc, argv);
     ScreenCapturePreview screenCapturePreview;
     screenCapturePreview.show();
     return app.exec();
