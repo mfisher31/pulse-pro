@@ -78,4 +78,7 @@ qt_generate_deploy_app_script(
 )
 install(SCRIPT ${deploy_script})
 
+enable_testing()
+add_subdirectory(tests)
+
 qt_finalize_executable(pulse-pro)
