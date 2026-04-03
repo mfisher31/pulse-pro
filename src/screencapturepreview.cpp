@@ -4,26 +4,25 @@
 #include <QGraphicsScene>
 #include <QGraphicsVideoItem>
 #include <QGraphicsView>
-#include <QMediaCaptureSession>
 #include <QResizeEvent>
-#include <QScreenCapture>
 
 #include <QAction>
+#include <QAudioDevice>
+#include <QComboBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QFrame>
 #include <QGridLayout>
 #include <QGuiApplication>
 #include <QLabel>
-#include <QLineEdit>
-#include <QListWidget>
-#include <QMediaFormat>
+#include <QListView>
+#include <QMediaDevices>
 #include <QMediaRecorder>
 #include <QMessageBox>
 #include <QPushButton>
 #include <QTimer>
-#include <QUrl>
 
+#include "captureengine.hpp"
 #include "regionselectionoverlay.hpp"
 #include "screencapturepreview.hpp"
 #include "screenlistmodel.hpp"
@@ -33,140 +32,187 @@ namespace pulse {
 
 ScreenCapturePreview::ScreenCapturePreview(QWidget* parent)
     : QWidget(parent)
-    , screenListView(new QListView(this))
-    , windowListView(new QListView(this))
-    , screenCapture(new QScreenCapture(this))
-    , windowCapture(new QWindowCapture(this))
-    , mediaCaptureSession(new QMediaCaptureSession(this))
-    , graphicsScene(new QGraphicsScene(this))
-    , graphicsVideoItem(new QGraphicsVideoItem())
-    , graphicsView(new QGraphicsView(graphicsScene, this))
-    , gridLayout(new QGridLayout(this))
-    , startStopButton(new QPushButton(this))
-    , screenLabel(new QLabel(tr("Select screen to capture:"), this))
-    , windowLabel(new QLabel(tr("Select window to capture:"), this))
-    , videoWidgetLabel(new QLabel(tr("Capture output:"), this))
-    , mediaRecorder(new QMediaRecorder(this))
-    , recordButton(new QPushButton(tr("Record"), this))
-    , selectRegionButton(new QPushButton(tr("Select Region…"), this))
-    , regionLabel(new QLabel(tr("No region selected"), this))
+    , _engine(new CaptureEngine(this))
+    , _screenList(new ScreenListModel(this))
+    , _windowList(new WindowListModel(this))
+    , _screenListView(new QListView(this))
+    , _windowListView(new QListView(this))
+    , _graphicsScene(new QGraphicsScene(this))
+    , _graphicsVideoItem(new QGraphicsVideoItem())
+    , _graphicsView(new QGraphicsView(_graphicsScene, this))
+    , _gridLayout(new QGridLayout(this))
+    , _startStopButton(new QPushButton(this))
+    , _recordButton(new QPushButton(tr("Record"), this))
+    , _selectRegionButton(new QPushButton(tr("Select Region…"), this))
+    , _screenLabel(new QLabel(tr("Select screen to capture:"), this))
+    , _windowLabel(new QLabel(tr("Select window to capture:"), this))
+    , _videoWidgetLabel(new QLabel(tr("Capture output:"), this))
+    , _audioLabel(new QLabel(tr("Audio input:"), this))
+    , _audioDeviceCombo(new QComboBox(this))
+    , _regionLabel(new QLabel(tr("No region selected"), this))
 {
-    // Get lists of screens and windows:
-    screenList = new ScreenListModel(this);
-    windowList = new WindowListModel(this);
+    _engine->setVideoOutput(_graphicsVideoItem);
 
-    // Setup QScreenCapture with initial source:
+    _graphicsScene->addItem(_graphicsVideoItem);
+    _graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    _graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    _graphicsView->setFrameStyle(QFrame::NoFrame);
+    _graphicsView->setAlignment(Qt::AlignCenter);
+    _graphicsView->setBackgroundBrush(Qt::black);
 
-    mediaCaptureSession->setScreenCapture(screenCapture);
-    mediaCaptureSession->setWindowCapture(windowCapture);
+    populateAudioDevices();
 
-    graphicsScene->addItem(graphicsVideoItem);
-    graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    graphicsView->setFrameStyle(QFrame::NoFrame);
-    graphicsView->setAlignment(Qt::AlignCenter);
-    graphicsView->setBackgroundBrush(Qt::black);
+    _screenListView->setModel(_screenList);
+    _windowListView->setModel(_windowList);
 
-    mediaCaptureSession->setVideoOutput(graphicsVideoItem);
+    auto* updateAction = new QAction(tr("Update Windows List"), this);
+    connect(updateAction, &QAction::triggered, _windowList, &WindowListModel::populate);
+    _windowListView->addAction(updateAction);
+    _windowListView->setContextMenuPolicy(Qt::ActionsContextMenu);
 
-    // All three (fileFormat, videoCodec, audioCodec) must be specified so that
-    // QMediaRecorder::record() does not re-resolve the format and override our
-    // choices. If any field is unspecified, Qt calls resolveFormat(RequiresVideo)
-    // internally and will pick whatever it deems "best" — on Linux that resolves
-    // to hevc_vaapi, which fails when the VAAPI driver lacks an HEVC profile.
-    //
-    // On Linux, Qt's bundled FFmpeg omits libx264 (GPL), so H.264 software
-    // encoding is unavailable. MPEG-4 Part 2 ("mpeg4" muxer) is always present
-    // as a pure-software path. AAC is built into Qt's FFmpeg on all platforms.
-    QMediaFormat format;
-    format.setFileFormat(QMediaFormat::MPEG4);
-    format.setAudioCodec(QMediaFormat::AudioCodec::AAC);
-#ifdef Q_OS_LINUX
-    // Use MPEG-4 Part 2 — guaranteed software encoder, no VAAPI required.
-    format.setVideoCodec(QMediaFormat::VideoCodec::MPEG4);
-#else
-    format.setVideoCodec(QMediaFormat::VideoCodec::H264);
-#endif
-    mediaRecorder->setMediaFormat(format);
-    mediaCaptureSession->setRecorder(mediaRecorder);
+    _gridLayout->addWidget(_screenLabel, 0, 0);
+    _gridLayout->addWidget(_screenListView, 1, 0);
+    _gridLayout->addWidget(_windowLabel, 2, 0);
+    _gridLayout->addWidget(_windowListView, 3, 0);
+    _gridLayout->addWidget(_startStopButton, 4, 0);
+    _gridLayout->addWidget(_recordButton, 5, 0);
+    _gridLayout->addWidget(_selectRegionButton, 6, 0);
+    _gridLayout->addWidget(_regionLabel, 7, 0);
+    _gridLayout->addWidget(_audioLabel, 8, 0);
+    _gridLayout->addWidget(_audioDeviceCombo, 9, 0);
+    _gridLayout->addWidget(_videoWidgetLabel, 0, 1);
+    _gridLayout->addWidget(_graphicsView, 1, 1, 9, 1);
 
-    // Setup UI:
-    screenListView->setModel(screenList);
-    windowListView->setModel(windowList);
+    _gridLayout->setColumnStretch(1, 1);
+    _gridLayout->setRowStretch(1, 1);
+    _gridLayout->setColumnMinimumWidth(0, 400);
+    _gridLayout->setColumnMinimumWidth(1, 400);
+    _gridLayout->setRowMinimumHeight(3, 1);
 
-    auto updateAction = new QAction(tr("Update Windows List"), this);
-    connect(updateAction, &QAction::triggered, windowList, &WindowListModel::populate);
-    windowListView->addAction(updateAction);
-    windowListView->setContextMenuPolicy(Qt::ActionsContextMenu);
-
-    gridLayout->addWidget(screenLabel, 0, 0);
-    gridLayout->addWidget(screenListView, 1, 0);
-    gridLayout->addWidget(windowLabel, 2, 0);
-    gridLayout->addWidget(windowListView, 3, 0);
-    gridLayout->addWidget(startStopButton, 4, 0);
-    gridLayout->addWidget(recordButton, 5, 0);
-    gridLayout->addWidget(selectRegionButton, 6, 0);
-    gridLayout->addWidget(regionLabel, 7, 0);
-    gridLayout->addWidget(videoWidgetLabel, 0, 1);
-    gridLayout->addWidget(graphicsView, 1, 1, 7, 1);
-
-    gridLayout->setColumnStretch(1, 1);
-    gridLayout->setRowStretch(1, 1);
-    gridLayout->setColumnMinimumWidth(0, 400);
-    gridLayout->setColumnMinimumWidth(1, 400);
-    gridLayout->setRowMinimumHeight(3, 1);
-
-    connect(screenListView->selectionModel(),
+    connect(_screenListView->selectionModel(),
             &QItemSelectionModel::selectionChanged,
             this,
             &ScreenCapturePreview::onCurrentScreenSelectionChanged);
-    connect(windowListView->selectionModel(),
+    connect(_windowListView->selectionModel(),
             &QItemSelectionModel::selectionChanged,
             this,
             &ScreenCapturePreview::onCurrentWindowSelectionChanged);
-    connect(startStopButton,
+    connect(_startStopButton,
             &QPushButton::clicked,
             this,
             &ScreenCapturePreview::onStartStopButtonClicked);
-    connect(screenCapture,
-            &QScreenCapture::errorChanged,
+    connect(_recordButton,
+            &QPushButton::clicked,
             this,
-            &ScreenCapturePreview::onScreenCaptureErrorChanged,
-            Qt::QueuedConnection);
-    connect(windowCapture,
-            &QWindowCapture::errorChanged,
-            this,
-            &ScreenCapturePreview::onWindowCaptureErrorChanged,
-            Qt::QueuedConnection);
-    connect(
-        recordButton, &QPushButton::clicked, this, &ScreenCapturePreview::onRecordButtonClicked);
-    connect(
-        mediaRecorder,
-        &QMediaRecorder::errorChanged,
-        this,
-        [this]() {
-            if (mediaRecorder->error() != QMediaRecorder::NoError)
-                QMessageBox::warning(
-                    this, tr("QMediaRecorder: Error occurred"), mediaRecorder->errorString());
-        },
-        Qt::QueuedConnection);
-    connect(mediaRecorder,
-            &QMediaRecorder::recorderStateChanged,
-            this,
-            [this](QMediaRecorder::RecorderState state) {
-                recordButton->setText(state == QMediaRecorder::RecordingState ? tr("Stop Recording")
-                                                                              : tr("Record"));
-            });
-
-    connect(graphicsVideoItem, &QGraphicsVideoItem::nativeSizeChanged, this, [this]() {
-        fitVideoToView();
-    });
-    connect(selectRegionButton,
+            &ScreenCapturePreview::onRecordButtonClicked);
+    connect(_selectRegionButton,
             &QPushButton::clicked,
             this,
             &ScreenCapturePreview::onSelectRegionClicked);
+    connect(_audioDeviceCombo,
+            &QComboBox::currentIndexChanged,
+            this,
+            &ScreenCapturePreview::onAudioDeviceChanged);
 
-    updateActive(SourceType::Screen, true);
+    connect(_engine, &CaptureEngine::activeChanged, this, [this]() {
+        updateStartStopButtonText();
+    });
+    connect(_engine,
+            &CaptureEngine::recorderStateChanged,
+            this,
+            [this](QMediaRecorder::RecorderState state) {
+                _recordButton->setText(state == QMediaRecorder::RecordingState
+                                           ? tr("Stop Recording")
+                                           : tr("Record"));
+            });
+    connect(_engine, &CaptureEngine::errorOccurred, this, [this](const QString& message) {
+        QMessageBox::warning(this, tr("Capture Error"), message);
+    });
+
+    connect(_graphicsVideoItem, &QGraphicsVideoItem::nativeSizeChanged, this, [this]() {
+        fitVideoToView();
+    });
+
+    _engine->setActive(CaptureEngine::SourceType::Screen, true);
+}
+
+ScreenCapturePreview::~ScreenCapturePreview() = default;
+
+void ScreenCapturePreview::populateAudioDevices()
+{
+    _audioDeviceCombo->addItem(tr("No audio"));
+    const auto devices = QMediaDevices::audioInputs();
+    for (const QAudioDevice& device : devices)
+        _audioDeviceCombo->addItem(device.description(), QVariant::fromValue(device));
+}
+
+void ScreenCapturePreview::onAudioDeviceChanged(int index)
+{
+    if (index <= 0) {
+        _engine->setAudioEnabled(false);
+        return;
+    }
+    const auto device = _audioDeviceCombo->itemData(index).value<QAudioDevice>();
+    _engine->setAudioDevice(device);
+}
+
+void ScreenCapturePreview::onCurrentScreenSelectionChanged(QItemSelection selection)
+{
+    if (auto indexes = selection.indexes(); !indexes.empty()) {
+        _engine->setScreen(_screenList->screen(indexes.front()));
+        _engine->setActive(CaptureEngine::SourceType::Screen, _engine->isActive());
+
+        _windowListView->clearSelection();
+    } else {
+        _engine->setScreen(nullptr);
+    }
+}
+
+void ScreenCapturePreview::onCurrentWindowSelectionChanged(QItemSelection selection)
+{
+    if (auto indexes = selection.indexes(); !indexes.empty()) {
+        auto window = _windowList->window(indexes.front());
+        if (!window.isValid()) {
+            const auto questionResult = QMessageBox::question(
+                this,
+                tr("Invalid window"),
+                tr("The window is no longer valid. Update the list of windows?"));
+            if (questionResult == QMessageBox::Yes) {
+                _engine->setActive(CaptureEngine::SourceType::Window, false);
+
+                _windowListView->clearSelection();
+                _windowList->populate();
+                return;
+            }
+        }
+
+        _engine->setWindow(window);
+        _engine->setActive(CaptureEngine::SourceType::Window, _engine->isActive());
+
+        _screenListView->clearSelection();
+    } else {
+        _engine->setWindow({});
+    }
+}
+
+void ScreenCapturePreview::onStartStopButtonClicked()
+{
+    _engine->setActive(_engine->sourceType(), !_engine->isActive());
+}
+
+void ScreenCapturePreview::onRecordButtonClicked()
+{
+    if (_engine->recorderState() == QMediaRecorder::RecordingState) {
+        _engine->stopRecording();
+        return;
+    }
+
+    const QString filePath = QFileDialog::getSaveFileName(
+        this, tr("Save Recording"), QDir::homePath() + "/recording.mp4", tr("MP4 Video (*.mp4)"));
+    if (filePath.isEmpty())
+        return;
+
+    _engine->startRecording(filePath);
 }
 
 void ScreenCapturePreview::onSelectRegionClicked()
@@ -198,11 +244,11 @@ void ScreenCapturePreview::onRegionSelected(QRect globalRect)
     qDeleteAll(_overlays);
     _overlays.clear();
     show();
-    regionLabel->setText(tr("Region: %1×%2 at (%3, %4)")
-                             .arg(_selectedRegion.width())
-                             .arg(_selectedRegion.height())
-                             .arg(_selectedRegion.x())
-                             .arg(_selectedRegion.y()));
+    _regionLabel->setText(tr("Region: %1×%2 at (%3, %4)")
+                              .arg(_selectedRegion.width())
+                              .arg(_selectedRegion.height())
+                              .arg(_selectedRegion.x())
+                              .arg(_selectedRegion.y()));
 }
 
 void ScreenCapturePreview::onSelectionCancelled()
@@ -210,122 +256,22 @@ void ScreenCapturePreview::onSelectionCancelled()
     qDeleteAll(_overlays);
     _overlays.clear();
     _selectedRegion = QRect();
-    regionLabel->setText(tr("No region selected"));
+    _regionLabel->setText(tr("No region selected"));
     show();
-}
-
-ScreenCapturePreview::~ScreenCapturePreview() = default;
-
-void ScreenCapturePreview::onCurrentScreenSelectionChanged(QItemSelection selection)
-{
-    if (auto indexes = selection.indexes(); !indexes.empty()) {
-        screenCapture->setScreen(screenList->screen(indexes.front()));
-        updateActive(SourceType::Screen, isActive());
-
-        windowListView->clearSelection();
-    } else {
-        screenCapture->setScreen(nullptr);
-    }
-}
-
-void ScreenCapturePreview::onCurrentWindowSelectionChanged(QItemSelection selection)
-{
-    if (auto indexes = selection.indexes(); !indexes.empty()) {
-        auto window = windowList->window(indexes.front());
-        if (!window.isValid()) {
-            const auto questionResult = QMessageBox::question(
-                this,
-                tr("Invalid window"),
-                tr("The window is no longer valid. Update the list of windows?"));
-            if (questionResult == QMessageBox::Yes) {
-                updateActive(SourceType::Window, false);
-
-                windowListView->clearSelection();
-                windowList->populate();
-                return;
-            }
-        }
-
-        windowCapture->setWindow(window);
-        updateActive(SourceType::Window, isActive());
-
-        screenListView->clearSelection();
-    } else {
-        windowCapture->setWindow({});
-    }
-}
-
-void ScreenCapturePreview::onWindowCaptureErrorChanged()
-{
-    if (windowCapture->error() == QWindowCapture::NoError)
-        return;
-
-    QMessageBox::warning(this, tr("QWindowCapture: Error occurred"), windowCapture->errorString());
-}
-
-void ScreenCapturePreview::onScreenCaptureErrorChanged()
-{
-    if (screenCapture->error() == QScreenCapture::NoError)
-        return;
-
-    QMessageBox::warning(this, tr("QScreenCapture: Error occurred"), screenCapture->errorString());
-}
-
-void ScreenCapturePreview::onStartStopButtonClicked()
-{
-    updateActive(sourceType, !isActive());
 }
 
 void ScreenCapturePreview::updateStartStopButtonText()
 {
-    switch (sourceType) {
-    case SourceType::Window:
-        startStopButton->setText(isActive() ? tr("Stop window capture")
-                                            : tr("Start window capture"));
+    switch (_engine->sourceType()) {
+    case CaptureEngine::SourceType::Window:
+        _startStopButton->setText(_engine->isActive() ? tr("Stop window capture")
+                                                      : tr("Start window capture"));
         break;
-    case SourceType::Screen:
-        startStopButton->setText(isActive() ? tr("Stop screen capture")
-                                            : tr("Start screen capture"));
+    case CaptureEngine::SourceType::Screen:
+        _startStopButton->setText(_engine->isActive() ? tr("Stop screen capture")
+                                                      : tr("Start screen capture"));
         break;
     }
-}
-
-void ScreenCapturePreview::updateActive(SourceType sourceType, bool active)
-{
-    this->sourceType = sourceType;
-
-    screenCapture->setActive(active && sourceType == SourceType::Screen);
-    windowCapture->setActive(active && sourceType == SourceType::Window);
-
-    updateStartStopButtonText();
-}
-
-bool ScreenCapturePreview::isActive() const
-{
-    switch (sourceType) {
-    case SourceType::Window:
-        return windowCapture->isActive();
-    case SourceType::Screen:
-        return screenCapture->isActive();
-    default:
-        return false;
-    }
-}
-
-void ScreenCapturePreview::onRecordButtonClicked()
-{
-    if (mediaRecorder->recorderState() == QMediaRecorder::RecordingState) {
-        mediaRecorder->stop();
-        return;
-    }
-
-    const QString filePath = QFileDialog::getSaveFileName(
-        this, tr("Save Recording"), QDir::homePath() + "/recording.mp4", tr("MP4 Video (*.mp4)"));
-    if (filePath.isEmpty())
-        return;
-
-    mediaRecorder->setOutputLocation(QUrl::fromLocalFile(filePath));
-    mediaRecorder->record();
 }
 
 void ScreenCapturePreview::resizeEvent(QResizeEvent* event)
@@ -336,15 +282,16 @@ void ScreenCapturePreview::resizeEvent(QResizeEvent* event)
 
 void ScreenCapturePreview::fitVideoToView()
 {
-    const QSizeF native = graphicsVideoItem->nativeSize();
+    const QSizeF native = _graphicsVideoItem->nativeSize();
     if (native.isEmpty())
         return;
-    const QSizeF viewSize = graphicsView->viewport()->size();
+    const QSizeF viewSize = _graphicsView->viewport()->size();
     const QSizeF fitted = native.scaled(viewSize, Qt::KeepAspectRatio);
-    graphicsVideoItem->setSize(fitted);
-    graphicsVideoItem->setPos((viewSize.width() - fitted.width()) / 2.0,
-                              (viewSize.height() - fitted.height()) / 2.0);
-    graphicsScene->setSceneRect(QRectF(QPointF(), viewSize));
+    _graphicsVideoItem->setSize(fitted);
+    _graphicsVideoItem->setPos((viewSize.width() - fitted.width()) / 2.0,
+                               (viewSize.height() - fitted.height()) / 2.0);
+    _graphicsScene->setSceneRect(QRectF(QPointF(), viewSize));
 }
 
-}
+} // namespace pulse
+
