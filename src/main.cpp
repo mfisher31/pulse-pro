@@ -3,14 +3,12 @@
 
 #include <QApplication>
 
-#include "screencapturepreview.hpp"
-
-using pulse::ScreenCapturePreview;
+#include "mainwindow.hpp"
 
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    ScreenCapturePreview screenCapturePreview;
-    screenCapturePreview.show();
+    pulse::MainWindow window;
+    window.show();
     return app.exec();
 }

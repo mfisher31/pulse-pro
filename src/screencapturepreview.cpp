@@ -30,9 +30,9 @@
 
 namespace pulse {
 
-ScreenCapturePreview::ScreenCapturePreview(QWidget* parent)
+ScreenCapturePreview::ScreenCapturePreview(CaptureEngine* engine, QWidget* parent)
     : QWidget(parent)
-    , _engine(new CaptureEngine(this))
+    , _engine(engine)
     , _screenList(new ScreenListModel(this))
     , _windowList(new WindowListModel(this))
     , _screenListView(new QListView(this))

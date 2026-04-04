@@ -27,18 +27,20 @@ class ScreenListModel;
 class WindowListModel;
 
 /**
-    Main application window for Pulse Pro.
+    Capture preview panel.
 
     Owns the display pipeline (QGraphicsScene, QGraphicsVideoItem, QGraphicsView)
     and all UI controls. Delegates capture source management, audio, and recording
-    to CaptureEngine.
+    to the injected CaptureEngine — which is owned by the caller.
+
+    @note engine must outlive this widget.
 */
 class ScreenCapturePreview : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit ScreenCapturePreview(QWidget* parent = nullptr);
+    explicit ScreenCapturePreview(CaptureEngine* engine, QWidget* parent = nullptr);
     ~ScreenCapturePreview() override;
 
 protected:

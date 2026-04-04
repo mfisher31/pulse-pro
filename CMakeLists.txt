@@ -20,6 +20,8 @@ include(cmake/SetupQt.cmake)
 
 set(PULSE_SOURCES
     src/main.cpp
+    src/mainwindow.hpp
+    src/mainwindow.cpp
     src/captureengine.hpp
     src/captureengine.cpp
     src/screencapturepreview.cpp
