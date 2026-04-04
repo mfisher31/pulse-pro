@@ -22,4 +22,24 @@ void applyOverlayWindowBehavior(quintptr windowId)
     // clang-format on
 }
 
+void setWindowAnimationEnabled(quintptr windowId, bool enabled)
+{
+    NSView* view = reinterpret_cast<NSView*>(windowId);
+    NSWindow* window = [view window];
+    if (!window)
+        return;
+    window.animationBehavior = enabled ? NSWindowAnimationBehaviorDefault
+                                       : NSWindowAnimationBehaviorNone;
+}
+
+void hideMouseCursor()
+{
+    [NSCursor hide];
+}
+
+void showMouseCursor()
+{
+    [NSCursor unhide];
+}
+
 }

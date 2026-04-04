@@ -5,6 +5,7 @@
 
 #include <QMediaRecorder>
 #include <QObject>
+#include <QRect>
 
 QT_BEGIN_NAMESPACE
 class QAudioDevice;
@@ -60,9 +61,23 @@ public:
         The output format is inferred from the file extension (.png, .jpg, etc.).
         Safe to call at any time; no-op if no frame has been received yet.
 
-        @param filePath Absolute path for the output image file.
+        @param filePath  Absolute path for the output image file.
+        @param cropRect  If valid, the saved image is cropped to this rectangle.
     */
-    void takeSnapshot(const QString& filePath);
+    void takeSnapshot(const QString& filePath, const QRect& cropRect = {});
+
+    /**
+        Waits for the next frame delivered by the capture pipeline, then saves it.
+
+        Use this instead of takeSnapshot() when something on-screen has just
+        changed (e.g. cursor hidden) and you need the capture pipeline to deliver
+        a fresh frame reflecting that change before writing the file.
+        Emits snapshotTaken() when the file has been saved.
+
+        @param filePath  Absolute path for the output image file.
+        @param cropRect  If valid, the saved image is cropped to this rectangle.
+    */
+    void takeSnapshotOnNextFrame(const QString& filePath, const QRect& cropRect = {});
 
     /**
         Sets the screen to capture when source type is Screen.
@@ -91,6 +106,12 @@ public:
 
     /** @returns The currently selected source type. */
     SourceType sourceType() const;
+
+    /**
+        Returns the screen currently set as the capture source, or nullptr if
+        the source type is Window or no screen has been set.
+    */
+    QScreen* currentScreen() const;
 
     /**
         Enables or disables audio input in the capture session.
@@ -128,6 +149,9 @@ signals:
 
     /** Emitted when any capture or recorder error occurs. */
     void errorOccurred(const QString& message);
+
+    /** Emitted by takeSnapshotOnNextFrame() after the file has been saved. */
+    void snapshotTaken(const QString& filePath);
 
 private:
     QScreenCapture* _screenCapture = nullptr;

@@ -79,13 +79,31 @@ void CaptureEngine::setVideoOutput(QVideoSink* sink)
     connect(_videoSink, &QVideoSink::videoFrameChanged, sink, &QVideoSink::setVideoFrame);
 }
 
-void CaptureEngine::takeSnapshot(const QString& filePath)
+void CaptureEngine::takeSnapshot(const QString& filePath, const QRect& cropRect)
 {
     const QVideoFrame frame = _videoSink->videoFrame();
     if (!frame.isValid())
         return;
     // toImage() is a one-shot GPU→CPU download; acceptable outside hot paths.
-    frame.toImage().save(filePath);
+    QImage image = frame.toImage();
+    if (cropRect.isValid())
+        image = image.copy(cropRect);
+    image.save(filePath);
+}
+
+void CaptureEngine::takeSnapshotOnNextFrame(const QString& filePath, const QRect& cropRect)
+{
+    // Qt::SingleShotConnection auto-disconnects after the first delivery.
+    connect(_videoSink, &QVideoSink::videoFrameChanged, this,
+            [this, filePath, cropRect](const QVideoFrame& frame) {
+                if (!frame.isValid())
+                    return;
+                QImage image = frame.toImage();
+                if (cropRect.isValid())
+                    image = image.copy(cropRect);
+                image.save(filePath);
+                emit snapshotTaken(filePath);
+            }, Qt::SingleShotConnection);
 }
 
 void CaptureEngine::setScreen(QScreen* screen)
@@ -121,6 +139,11 @@ bool CaptureEngine::isActive() const
 CaptureEngine::SourceType CaptureEngine::sourceType() const
 {
     return _sourceType;
+}
+
+QScreen* CaptureEngine::currentScreen() const
+{
+    return _screenCapture->screen();
 }
 
 void CaptureEngine::setAudioEnabled(bool enabled)

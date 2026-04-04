@@ -4,5 +4,8 @@
 #include "windowutil.hpp"
 
 namespace pulse {
-    void applyOverlayWindowBehavior(quintptr){}
+    void applyOverlayWindowBehavior(quintptr) {}
+    void setWindowAnimationEnabled(quintptr, bool) {}
+    void hideMouseCursor() {}
+    void showMouseCursor() {}
 }

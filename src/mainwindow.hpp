@@ -4,12 +4,19 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QRect>
+
+QT_BEGIN_NAMESPACE
+class QTimer;
+class QToolButton;
+QT_END_NAMESPACE
 
 QT_USE_NAMESPACE
 
 namespace pulse {
 
 class CaptureEngine;
+class RegionSelectionOverlay;
 class ScreenCapturePreview;
 
 /**
@@ -24,14 +31,35 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
+    /** Identifies which snapshot mode the toolbar button currently uses. */
+    enum class SnapshotMode
+    {
+        Fullscreen,
+        Timed,
+        Selection
+    };
+
     explicit MainWindow(QWidget* parent = nullptr);
 
     /** @returns The application-level capture engine. */
     CaptureEngine* engine() const;
 
 private:
+    void takeSnapshotWithMode(SnapshotMode mode);
+    void executeSnapshot(const QRect& cropRect = {});
+    QString nextSnapshotPath() const;
+
+    void onRegionSelected(QRect globalRect);
+    void onSelectionCancelled();
+
+private:
     CaptureEngine* _engine = nullptr;
     ScreenCapturePreview* _preview = nullptr;
+    QToolButton* _snapshotButton = nullptr;
+    QTimer* _countdownTimer = nullptr;
+    SnapshotMode _snapshotMode = SnapshotMode::Fullscreen;
+    QList<RegionSelectionOverlay*> _overlays;
+    int _countdownRemaining = 0;
 };
 
 } // namespace pulse

@@ -9,8 +9,8 @@
 #include <QAction>
 #include <QAudioDevice>
 #include <QComboBox>
+#include <QDateTime>
 #include <QDir>
-#include <QFileDialog>
 #include <QFrame>
 #include <QGridLayout>
 #include <QGuiApplication>
@@ -141,6 +141,7 @@ ScreenCapturePreview::~ScreenCapturePreview() = default;
 void ScreenCapturePreview::populateAudioDevices()
 {
     _audioDeviceCombo->addItem(tr("No audio"));
+    _audioDeviceCombo->insertSeparator (_audioDeviceCombo->count());
     const auto devices = QMediaDevices::audioInputs();
     for (const QAudioDevice& device : devices)
         _audioDeviceCombo->addItem(device.description(), QVariant::fromValue(device));
@@ -207,10 +208,11 @@ void ScreenCapturePreview::onRecordButtonClicked()
         return;
     }
 
-    const QString filePath = QFileDialog::getSaveFileName(
-        this, tr("Save Recording"), QDir::homePath() + "/recording.mp4", tr("MP4 Video (*.mp4)"));
-    if (filePath.isEmpty())
-        return;
+    const QDir recordingDir(QDir::homePath() + "/Desktop/Recordings");
+    if (!recordingDir.exists())
+        recordingDir.mkpath(".");
+    const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");
+    const QString filePath = recordingDir.filePath("movie-" + timestamp + ".mp4");
 
     _engine->startRecording(filePath);
 }
