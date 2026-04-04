@@ -69,9 +69,6 @@ MainWindow::MainWindow(QWidget* parent)
     _snapshotButton->setPopupMode(QToolButton::MenuButtonPopup);
     _snapshotButton->setMenu(snapshotMenu);
     _snapshotButton->setDefaultAction(fullscreenAction);
-    connect(_snapshotButton, &QToolButton::clicked, this, [this]() {
-        takeSnapshotWithMode(_snapshotMode);
-    });
 
     // --- Toolbar ---
     auto* toolbar = addToolBar(tr("Main"));
