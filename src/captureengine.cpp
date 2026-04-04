@@ -9,6 +9,8 @@
 #include <QScreen>
 #include <QScreenCapture>
 #include <QUrl>
+#include <QVideoFrame>
+#include <QVideoSink>
 #include <QWindowCapture>
 
 #include "captureengine.hpp"
@@ -22,10 +24,12 @@ CaptureEngine::CaptureEngine(QObject* parent)
     , _captureSession(new QMediaCaptureSession(this))
     , _recorder(new QMediaRecorder(this))
     , _audioInput(new QAudioInput(this))
+    , _videoSink(new QVideoSink(this))
 {
     _captureSession->setScreenCapture(_screenCapture);
     _captureSession->setWindowCapture(_windowCapture);
     _captureSession->setRecorder(_recorder);
+    _captureSession->setVideoOutput(_videoSink);
     // Audio is disabled by default; wire it in via setAudioDevice() / setAudioEnabled().
 
     // All three (fileFormat, videoCodec, audioCodec) must be specified so that
@@ -69,9 +73,19 @@ CaptureEngine::CaptureEngine(QObject* parent)
             &CaptureEngine::recorderStateChanged);
 }
 
-void CaptureEngine::setVideoOutput(QObject* output)
+void CaptureEngine::setVideoOutput(QVideoSink* sink)
 {
-    _captureSession->setVideoOutput(output);
+    // Forward every frame the session delivers to the downstream display sink.
+    connect(_videoSink, &QVideoSink::videoFrameChanged, sink, &QVideoSink::setVideoFrame);
+}
+
+void CaptureEngine::takeSnapshot(const QString& filePath)
+{
+    const QVideoFrame frame = _videoSink->videoFrame();
+    if (!frame.isValid())
+        return;
+    // toImage() is a one-shot GPU→CPU download; acceptable outside hot paths.
+    frame.toImage().save(filePath);
 }
 
 void CaptureEngine::setScreen(QScreen* screen)

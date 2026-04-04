@@ -13,6 +13,7 @@ class QCapturableWindow;
 class QMediaCaptureSession;
 class QScreen;
 class QScreenCapture;
+class QVideoSink;
 class QWindowCapture;
 QT_END_NAMESPACE
 
@@ -44,11 +45,24 @@ public:
     explicit CaptureEngine(QObject* parent = nullptr);
 
     /**
-        Connects a video output sink to the capture session.
+        Connects a downstream video sink to receive frames from the capture session.
 
-        @param output A QGraphicsVideoItem, QVideoWidget, or QVideoSink-based object.
+        The engine inserts its own QVideoSink between the session and the
+        downstream sink so it can hold the last frame for snapshot use.
+
+        @param sink The target sink (e.g. QGraphicsVideoItem::videoSink()).
     */
-    void setVideoOutput(QObject* output);
+    void setVideoOutput(QVideoSink* sink);
+
+    /**
+        Captures the most recently received video frame and saves it as an image.
+
+        The output format is inferred from the file extension (.png, .jpg, etc.).
+        Safe to call at any time; no-op if no frame has been received yet.
+
+        @param filePath Absolute path for the output image file.
+    */
+    void takeSnapshot(const QString& filePath);
 
     /**
         Sets the screen to capture when source type is Screen.
@@ -121,6 +135,7 @@ private:
     QMediaCaptureSession* _captureSession = nullptr;
     QMediaRecorder* _recorder = nullptr;
     QAudioInput* _audioInput = nullptr;
+    QVideoSink* _videoSink = nullptr;
     SourceType _sourceType = SourceType::Screen;
 };
 

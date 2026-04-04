@@ -51,7 +51,7 @@ ScreenCapturePreview::ScreenCapturePreview(CaptureEngine* engine, QWidget* paren
     , _audioDeviceCombo(new QComboBox(this))
     , _regionLabel(new QLabel(tr("No region selected"), this))
 {
-    _engine->setVideoOutput(_graphicsVideoItem);
+    _engine->setVideoOutput(_graphicsVideoItem->videoSink());
 
     _graphicsScene->addItem(_graphicsVideoItem);
     _graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

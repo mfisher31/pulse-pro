@@ -3,6 +3,8 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QDir>
+#include <QFileDialog>
 #include <QMenuBar>
 #include <QStatusBar>
 #include <QToolBar>
@@ -26,18 +28,29 @@ MainWindow::MainWindow(QWidget* parent)
     toolbar->setMovable(false);
 
     // Placeholder actions — wire to _preview as features are added
-    auto* newSessionAction = new QAction(tr("Snapshot"), this);
+    auto* snapshotAction = new QAction(tr("Snapshot"), this);
+    snapshotAction->setShortcut(QKeySequence(tr("Ctrl+Shift+S")));
     auto* openAction = new QAction(tr("Record"), this);
     auto* settingsAction = new QAction(tr("Settings"), this);
 
-    toolbar->addAction(newSessionAction);
+    connect(snapshotAction, &QAction::triggered, this, [this]() {
+        const QString filePath = QFileDialog::getSaveFileName(
+            this,
+            tr("Save Snapshot"),
+            QDir::homePath() + "/snapshot.png",
+            tr("PNG Image (*.png);;JPEG Image (*.jpg)"));
+        if (!filePath.isEmpty())
+            _engine->takeSnapshot(filePath);
+    });
+
+    toolbar->addAction(snapshotAction);
     toolbar->addAction(openAction);
     toolbar->addSeparator();
     toolbar->addAction(settingsAction);
 
     // Menu bar
     auto* fileMenu = menuBar()->addMenu(tr("File"));
-    fileMenu->addAction(newSessionAction);
+    fileMenu->addAction(snapshotAction);
     fileMenu->addAction(openAction);
     fileMenu->addSeparator();
     auto* quitAction = new QAction(tr("Quit"), this);
