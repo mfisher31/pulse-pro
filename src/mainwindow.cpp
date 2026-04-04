@@ -109,22 +109,12 @@ void MainWindow::takeSnapshotWithMode(SnapshotMode mode)
 
     switch (mode) {
     case SnapshotMode::Fullscreen:
-        // Wait for menu fade, then hide the window instantly and grab via
-        // QScreen::grabWindow() — which uses CGDisplayCreateImage on macOS.
-        // CGDisplayCreateImage does not composite the hardware cursor, so no
-        // cursor hiding is needed.
-        QTimer::singleShot(220, this, [this]() {
-            setWindowAnimationEnabled(winId(), false);
-            hide();
-            QTimer::singleShot(100, this, [this]() {
-                QScreen* screen = _engine->currentScreen();
-                if (!screen)
-                    screen = QGuiApplication::primaryScreen();
-                const QPixmap grab = screen->grabWindow(0);
-                grab.save(nextSnapshotPath());
-                show();
-                setWindowAnimationEnabled(winId(), true);
-            });
+        setWindowAnimationEnabled(winId(), false);
+        hide();
+        QTimer::singleShot(100, this, [this]() {
+            executeSnapshot();
+            show();
+            setWindowAnimationEnabled(winId(), true);
         });
         break;
 
@@ -158,10 +148,19 @@ void MainWindow::takeSnapshotWithMode(SnapshotMode mode)
 
 void MainWindow::onRegionSelected(QRect globalRect)
 {
+    for (auto* overlay : _overlays) {
+        overlay->setVisible(false);
+        overlay->hide();
+    }
     qDeleteAll(_overlays);
     _overlays.clear();
-    show();
-    executeSnapshot(globalRect);
+
+    // Wait for the compositor to repaint the screen without the overlay before
+    // grabbing — otherwise the blue selection border bleeds into the capture.
+    QTimer::singleShot(100, this, [this, globalRect]() {
+        executeSnapshot(globalRect);
+        show();
+    });
 }
 
 void MainWindow::onSelectionCancelled()
@@ -173,7 +172,7 @@ void MainWindow::onSelectionCancelled()
 
 void MainWindow::executeSnapshot(const QRect& cropRect)
 {
-    _engine->takeSnapshot(nextSnapshotPath(), cropRect);
+    _engine->writeSnapshot (nextSnapshotPath(), cropRect);
 }
 
 QString MainWindow::nextSnapshotPath() const

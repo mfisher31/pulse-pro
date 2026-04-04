@@ -56,28 +56,33 @@ public:
     void setVideoOutput(QVideoSink* sink);
 
     /**
-        Captures the most recently received video frame and saves it as an image.
+        Saves the most recently received video frame as an image.
 
-        The output format is inferred from the file extension (.png, .jpg, etc.).
-        Safe to call at any time; no-op if no frame has been received yet.
+        Performs a one-shot GPU→CPU download via QVideoFrame::toImage().
+        No-op if no frame has been received yet. The output format is inferred
+        from the file extension (.png, .jpg, etc.).
 
         @param filePath  Absolute path for the output image file.
-        @param cropRect  If valid, the saved image is cropped to this rectangle.
+        @param cropRect  If valid, the saved image is cropped to this rectangle
+                         before writing.
+        @note Do not call in a hot path — toImage() forces a GPU→CPU download.
     */
-    void takeSnapshot(const QString& filePath, const QRect& cropRect = {});
+    void writeVideoFrame(const QString& filePath, const QRect& cropRect = {});
 
     /**
-        Waits for the next frame delivered by the capture pipeline, then saves it.
+        Grabs the full display via CGDisplayCreateImage and saves it as an image.
 
-        Use this instead of takeSnapshot() when something on-screen has just
-        changed (e.g. cursor hidden) and you need the capture pipeline to deliver
-        a fresh frame reflecting that change before writing the file.
-        Emits snapshotTaken() when the file has been saved.
+        Uses QScreen::grabWindow(0) which is inherently cursor-free on macOS.
+        Falls back to the primary screen if no capture screen is set.
+        The output format is inferred from the file extension (.png, .jpg, etc.).
 
         @param filePath  Absolute path for the output image file.
-        @param cropRect  If valid, the saved image is cropped to this rectangle.
+        @param cropRect  Optional crop in global logical coordinates (as returned by
+                         QWidget::mapToGlobal). The method translates to screen-local
+                         coordinates and scales by devicePixelRatio before cropping,
+                         so callers do not need to account for HiDPI.
     */
-    void takeSnapshotOnNextFrame(const QString& filePath, const QRect& cropRect = {});
+    void writeSnapshot(const QString& filePath, const QRect& cropRect = {});
 
     /**
         Sets the screen to capture when source type is Screen.

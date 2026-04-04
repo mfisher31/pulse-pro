@@ -12,6 +12,7 @@
 #include <QVideoFrame>
 #include <QVideoSink>
 #include <QWindowCapture>
+#include <QtWidgets/qgraphicsitem.h>
 
 #include "captureengine.hpp"
 
@@ -79,7 +80,7 @@ void CaptureEngine::setVideoOutput(QVideoSink* sink)
     connect(_videoSink, &QVideoSink::videoFrameChanged, sink, &QVideoSink::setVideoFrame);
 }
 
-void CaptureEngine::takeSnapshot(const QString& filePath, const QRect& cropRect)
+void CaptureEngine::writeVideoFrame(const QString& filePath, const QRect& cropRect)
 {
     const QVideoFrame frame = _videoSink->videoFrame();
     if (!frame.isValid())
@@ -91,19 +92,21 @@ void CaptureEngine::takeSnapshot(const QString& filePath, const QRect& cropRect)
     image.save(filePath);
 }
 
-void CaptureEngine::takeSnapshotOnNextFrame(const QString& filePath, const QRect& cropRect)
+void CaptureEngine::writeSnapshot(const QString& filePath, const QRect& cropRect)
 {
-    // Qt::SingleShotConnection auto-disconnects after the first delivery.
-    connect(_videoSink, &QVideoSink::videoFrameChanged, this,
-            [this, filePath, cropRect](const QVideoFrame& frame) {
-                if (!frame.isValid())
-                    return;
-                QImage image = frame.toImage();
-                if (cropRect.isValid())
-                    image = image.copy(cropRect);
-                image.save(filePath);
-                emit snapshotTaken(filePath);
-            }, Qt::SingleShotConnection);
+    QScreen* screen = currentScreen();
+    if (!screen)
+        screen = QGuiApplication::primaryScreen();
+    QPixmap grab = screen->grabWindow(0);
+    if (cropRect.isValid() && !cropRect.isEmpty()) {
+        const qreal dpr = screen->devicePixelRatio();
+        const QRect screenLocal = cropRect.translated(-screen->geometry().topLeft());
+        const QRect physical(
+            QPoint(qRound(screenLocal.x() * dpr), qRound(screenLocal.y() * dpr)),
+            QSize(qRound(screenLocal.width() * dpr), qRound(screenLocal.height() * dpr)));
+        grab = grab.copy(physical);
+    }
+    grab.save(filePath);
 }
 
 void CaptureEngine::setScreen(QScreen* screen)
