@@ -3,12 +3,15 @@
 
 #include <QApplication>
 
-#include "mainwindow.hpp"
+#include "appcontroller.hpp"
 
 int main(int argc, char* argv[])
 {
     QApplication app(argc, argv);
-    pulse::MainWindow window;
-    window.show();
+    app.setQuitOnLastWindowClosed(false);
+
+    pulse::AppController controller;
+    controller.start();
+
     return app.exec();
 }

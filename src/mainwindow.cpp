@@ -23,9 +23,9 @@
 
 namespace pulse {
 
-MainWindow::MainWindow(QWidget* parent)
+MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
     : QMainWindow(parent)
-    , _engine(new CaptureEngine(this))
+    , _engine(engine)
     , _preview(new ScreenCapturePreview(_engine, this))
     , _snapshotButton(new QToolButton(this))
     , _countdownTimer(new QTimer(this))

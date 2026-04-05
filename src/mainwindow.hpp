@@ -22,9 +22,11 @@ class ScreenCapturePreview;
 /**
     Top-level application window.
 
-    Owns CaptureEngine and passes it to ScreenCapturePreview. Toolbar and menu
-    actions wire directly to the engine so that window-level controls (record,
-    stop, settings) do not need to go through the preview widget.
+    Receives a CaptureEngine reference and passes it to ScreenCapturePreview.
+    Toolbar and menu actions wire directly to the engine so that window-level
+    controls (record, stop, settings) do not need to go through the preview
+    widget. The engine is not owned by this window — its lifetime is managed
+    by AppController.
 */
 class MainWindow : public QMainWindow
 {
@@ -39,7 +41,13 @@ public:
         Selection
     };
 
-    explicit MainWindow(QWidget* parent = nullptr);
+    /**
+        Constructs the main window.
+
+        @param engine The application-level capture engine. Not owned by this window.
+        @param parent Optional parent widget.
+    */
+    explicit MainWindow(CaptureEngine* engine, QWidget* parent = nullptr);
 
     /** @returns The application-level capture engine. */
     CaptureEngine* engine() const;
