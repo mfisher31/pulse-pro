@@ -5,20 +5,25 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMimeDatabase>
 #include <QPixmap>
 #include <QScreen>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #include "captureengine.hpp"
 #include "mainwindow.hpp"
 #include "regionselectionoverlay.hpp"
 #include "screencapturepreview.hpp"
+#include "sourcedisplay.hpp"
 #include "windowutil.hpp"
 
 namespace pulse {
@@ -83,6 +88,11 @@ MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
 
     // --- Menu bar ---
     auto* fileMenu = menuBar()->addMenu(tr("File"));
+    auto* openAction = new QAction(tr("Open…"), this);
+    openAction->setShortcut(QKeySequence::Open);
+    connect(openAction, &QAction::triggered, this, &MainWindow::openMediaFile);
+    fileMenu->addAction(openAction);
+    fileMenu->addSeparator();
     fileMenu->addAction(fullscreenAction);
     fileMenu->addAction(timedAction);
     fileMenu->addAction(selectionAction);
@@ -184,6 +194,48 @@ QString MainWindow::nextSnapshotPath() const
 CaptureEngine* MainWindow::engine() const
 {
     return _engine;
+}
+
+void MainWindow::openMediaFile()
+{
+    static const QString filter = tr(
+        "Media Files (*.mp4 *.mov *.m4v *.avi *.mkv *.png *.jpg *.jpeg *.tiff *.tif *.bmp *.gif);;"
+        "Video Files (*.mp4 *.mov *.m4v *.avi *.mkv);;"
+        "Image Files (*.png *.jpg *.jpeg *.tiff *.tif *.bmp *.gif);;"
+        "All Files (*)");
+
+    const QString filePath = QFileDialog::getOpenFileName(this, tr("Open Media"), QDir::homePath(), filter);
+    if (filePath.isEmpty())
+        return;
+
+    if (!_mediaWindow) {
+        _mediaWindow = new QWidget(nullptr, Qt::Window);
+        _mediaWindow->setAttribute(Qt::WA_DeleteOnClose);
+        _mediaWindow->setWindowTitle(tr("Media Preview"));
+        _mediaWindow->resize(800, 600);
+        _sourceDisplay = new SourceDisplay(_mediaWindow);
+        auto* layout = new QVBoxLayout(_mediaWindow);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->addWidget(_sourceDisplay);
+        connect(_mediaWindow, &QWidget::destroyed, this, [this]() {
+            _mediaWindow = nullptr;
+            _sourceDisplay = nullptr;
+        });
+    }
+
+    const QMimeDatabase mimeDb;
+    const QString mimeType = mimeDb.mimeTypeForFile(filePath).name();
+
+    if (mimeType.startsWith("video/"))
+        _sourceDisplay->setVideoSource(filePath);
+    else
+        _sourceDisplay->setImageSource(filePath);
+
+    _mediaWindow->setWindowTitle(tr("Media Preview — %1").arg(QFileInfo(filePath).fileName()));
+    _mediaWindow->show();
+    _mediaWindow->raise();
+    _mediaWindow->resize(640, 360);
+
 }
 
 } // namespace pulse

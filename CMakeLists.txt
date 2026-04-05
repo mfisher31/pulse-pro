@@ -30,6 +30,10 @@ set(PULSE_SOURCES
     src/traycontroller.cpp
     src/screencapturepreview.cpp
     src/screencapturepreview.hpp
+    src/graphicsdisplay.hpp
+    src/graphicsdisplay.cpp
+    src/sourcedisplay.hpp
+    src/sourcedisplay.cpp
     src/screenlistmodel.hpp
     src/screenlistmodel.cpp
     src/windowlistmodel.hpp

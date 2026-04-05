@@ -18,6 +18,7 @@ namespace pulse {
 class CaptureEngine;
 class RegionSelectionOverlay;
 class ScreenCapturePreview;
+class SourceDisplay;
 
 /**
     Top-level application window.
@@ -59,6 +60,7 @@ private:
 
     void onRegionSelected(QRect globalRect);
     void onSelectionCancelled();
+    void openMediaFile();
 
 private:
     CaptureEngine* _engine = nullptr;
@@ -68,6 +70,8 @@ private:
     SnapshotMode _snapshotMode = SnapshotMode::Fullscreen;
     QList<RegionSelectionOverlay*> _overlays;
     int _countdownRemaining = 0;
+    QWidget* _mediaWindow = nullptr;
+    SourceDisplay* _sourceDisplay = nullptr;
 };
 
 } // namespace pulse
