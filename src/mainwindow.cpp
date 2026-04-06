@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QGuiApplication>
 #include <QMenu>
 #include <QMenuBar>
@@ -184,7 +185,8 @@ void MainWindow::executeSnapshot(const QRect& cropRect)
 
 QString MainWindow::nextSnapshotPath() const
 {
-    const QDir dir(QDir::homePath() + "/Desktop/Snapshots");
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    const QDir dir(base + "/Snapshots");
     if (!dir.exists())
         dir.mkpath(".");
     const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");

@@ -20,6 +20,7 @@
 #include <QMediaRecorder>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QStandardPaths>
 #include <QTimer>
 
 #include "captureengine.hpp"
@@ -208,7 +209,8 @@ void ScreenCapturePreview::onRecordButtonClicked()
         return;
     }
 
-    const QDir recordingDir(QDir::homePath() + "/Desktop/Recordings");
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    const QDir recordingDir(base + "/Recordings");
     if (!recordingDir.exists())
         recordingDir.mkpath(".");
     const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");

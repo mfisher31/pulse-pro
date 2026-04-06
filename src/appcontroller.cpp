@@ -4,6 +4,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QMediaRecorder>
+#include <QStandardPaths>
 #include <QTimer>
 
 #include "appcontroller.hpp"
@@ -68,7 +69,8 @@ void AppController::toggleRecording()
 
 QString AppController::nextSnapshotPath() const
 {
-    const QDir dir(QDir::homePath() + "/Desktop/Snapshots");
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    const QDir dir(base + "/Snapshots");
     if (!dir.exists())
         dir.mkpath(".");
     const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");
@@ -77,7 +79,8 @@ QString AppController::nextSnapshotPath() const
 
 QString AppController::nextRecordingPath() const
 {
-    const QDir dir(QDir::homePath() + "/Desktop/Recordings");
+    const QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    const QDir dir(base + "/Recordings");
     if (!dir.exists())
         dir.mkpath(".");
     const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");
