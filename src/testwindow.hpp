@@ -17,6 +17,7 @@ namespace pulse {
 
 class CaptureEngine;
 class RegionSelectionOverlay;
+class ScreenCapturePreview;
 class SourceDisplay;
 
 /**
@@ -28,7 +29,7 @@ class SourceDisplay;
     widget. The engine is not owned by this window — its lifetime is managed
     by AppController.
 */
-class MainWindow : public QMainWindow
+class TestWindow : public QMainWindow
 {
     Q_OBJECT
 
@@ -47,7 +48,7 @@ public:
         @param engine The application-level capture engine. Not owned by this window.
         @param parent Optional parent widget.
     */
-    explicit MainWindow(CaptureEngine* engine, QWidget* parent = nullptr);
+    explicit TestWindow(CaptureEngine* engine, QWidget* parent = nullptr);
 
     /** @returns The application-level capture engine. */
     CaptureEngine* engine() const;
@@ -56,7 +57,6 @@ private:
     void takeSnapshotWithMode(SnapshotMode mode);
     void executeSnapshot(const QRect& cropRect = {});
     QString nextSnapshotPath() const;
-    QString nextRecordingPath() const;
 
     void onRegionSelected(QRect globalRect);
     void onSelectionCancelled();
@@ -64,13 +64,14 @@ private:
 
 private:
     CaptureEngine* _engine = nullptr;
-    SourceDisplay* _display = nullptr;
+    ScreenCapturePreview* _preview = nullptr;
     QToolButton* _snapshotButton = nullptr;
     QTimer* _countdownTimer = nullptr;
     SnapshotMode _snapshotMode = SnapshotMode::Fullscreen;
     QList<RegionSelectionOverlay*> _overlays;
     int _countdownRemaining = 0;
-    QString _lastRecordingPath;
+    QWidget* _mediaWindow = nullptr;
+    SourceDisplay* _sourceDisplay = nullptr;
 };
 
 } // namespace pulse

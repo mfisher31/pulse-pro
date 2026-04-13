@@ -106,7 +106,8 @@ void CaptureEngine::writeSnapshot(const QString& filePath, const QRect& cropRect
             QSize(qRound(screenLocal.width() * dpr), qRound(screenLocal.height() * dpr)));
         grab = grab.copy(physical);
     }
-    grab.save(filePath);
+    if (grab.save(filePath))
+        emit snapshotTaken(filePath);
 }
 
 void CaptureEngine::setScreen(QScreen* screen)

@@ -7,7 +7,6 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QMediaRecorder>
 #include <QStandardPaths>
 #include <QGuiApplication>
 #include <QMenu>
@@ -19,24 +18,26 @@
 #include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #include "captureengine.hpp"
-#include "mainwindow.hpp"
+#include "testwindow.hpp"
 #include "regionselectionoverlay.hpp"
+#include "screencapturepreview.hpp"
 #include "sourcedisplay.hpp"
 #include "windowutil.hpp"
 
 namespace pulse {
 
-MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
+TestWindow::TestWindow(CaptureEngine* engine, QWidget* parent)
     : QMainWindow(parent)
     , _engine(engine)
-    , _display(new SourceDisplay(this))
+    , _preview(new ScreenCapturePreview(_engine, this))
     , _snapshotButton(new QToolButton(this))
     , _countdownTimer(new QTimer(this))
 {
     setWindowTitle(tr("Pulse Pro"));
-    setCentralWidget(_display);
+    setCentralWidget(_preview);
 
     _countdownTimer->setInterval(1000);
     connect(_countdownTimer, &QTimer::timeout, this, [this]() {
@@ -49,9 +50,6 @@ MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
             executeSnapshot();
         }
     });
-
-    // Show the last snapshot in the display whenever one is written.
-    connect(_engine, &CaptureEngine::snapshotTaken, _display, &SourceDisplay::setImageSource);
 
     // --- Snapshot mode actions ---
     auto* fullscreenAction = new QAction(tr("Fullscreen"), this);
@@ -85,21 +83,6 @@ MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
 
     auto* recordAction = new QAction(tr("Record"), this);
     auto* settingsAction = new QAction(tr("Settings"), this);
-    connect(recordAction, &QAction::triggered, this, [this, recordAction]() {
-        if (_engine->recorderState() == QMediaRecorder::RecordingState) {
-            _engine->stopRecording();
-            recordAction->setText(tr("Record"));
-        } else {
-            _lastRecordingPath = nextRecordingPath();
-            _engine->startRecording(_lastRecordingPath);
-            recordAction->setText(tr("Stop Recording"));
-        }
-    });
-    connect(_engine, &CaptureEngine::recorderStateChanged, this,
-            [this](QMediaRecorder::RecorderState state) {
-        if (state == QMediaRecorder::StoppedState && !_lastRecordingPath.isEmpty())
-            _display->setVideoSource(_lastRecordingPath);
-    });
     toolbar->addAction(recordAction);
     toolbar->addSeparator();
     toolbar->addAction(settingsAction);
@@ -108,7 +91,7 @@ MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
     auto* fileMenu = menuBar()->addMenu(tr("File"));
     auto* openAction = new QAction(tr("Open…"), this);
     openAction->setShortcut(QKeySequence::Open);
-    connect(openAction, &QAction::triggered, this, &MainWindow::openMediaFile);
+    connect(openAction, &QAction::triggered, this, &TestWindow::openMediaFile);
     fileMenu->addAction(openAction);
     fileMenu->addSeparator();
     fileMenu->addAction(fullscreenAction);
@@ -128,7 +111,7 @@ MainWindow::MainWindow(CaptureEngine* engine, QWidget* parent)
     statusBar()->showMessage(tr("Ready"));
 }
 
-void MainWindow::takeSnapshotWithMode(SnapshotMode mode)
+void TestWindow::takeSnapshotWithMode(SnapshotMode mode)
 {
     _snapshotMode = mode;
 
@@ -157,11 +140,11 @@ void MainWindow::takeSnapshotWithMode(SnapshotMode mode)
                 connect(overlay,
                         &RegionSelectionOverlay::regionSelected,
                         this,
-                        &MainWindow::onRegionSelected);
+                        &TestWindow::onRegionSelected);
                 connect(overlay,
                         &RegionSelectionOverlay::selectionCancelled,
                         this,
-                        &MainWindow::onSelectionCancelled);
+                        &TestWindow::onSelectionCancelled);
                 _overlays.append(overlay);
             }
             if (!_overlays.isEmpty())
@@ -171,7 +154,7 @@ void MainWindow::takeSnapshotWithMode(SnapshotMode mode)
     }
 }
 
-void MainWindow::onRegionSelected(QRect globalRect)
+void TestWindow::onRegionSelected(QRect globalRect)
 {
     for (auto* overlay : _overlays) {
         overlay->setVisible(false);
@@ -188,19 +171,19 @@ void MainWindow::onRegionSelected(QRect globalRect)
     });
 }
 
-void MainWindow::onSelectionCancelled()
+void TestWindow::onSelectionCancelled()
 {
     qDeleteAll(_overlays);
     _overlays.clear();
     show();
 }
 
-void MainWindow::executeSnapshot(const QRect& cropRect)
+void TestWindow::executeSnapshot(const QRect& cropRect)
 {
     _engine->writeSnapshot (nextSnapshotPath(), cropRect);
 }
 
-QString MainWindow::nextSnapshotPath() const
+QString TestWindow::nextSnapshotPath() const
 {
     const QString base = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     const QDir dir(base + "/Snapshots");
@@ -210,22 +193,12 @@ QString MainWindow::nextSnapshotPath() const
     return dir.filePath("snapshot-" + timestamp + ".png");
 }
 
-CaptureEngine* MainWindow::engine() const
+CaptureEngine* TestWindow::engine() const
 {
     return _engine;
 }
 
-QString MainWindow::nextRecordingPath() const
-{
-    const QString base = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
-    const QDir dir(base + "/Recordings");
-    if (!dir.exists())
-        dir.mkpath(".");
-    const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss");
-    return dir.filePath("recording-" + timestamp + ".mp4");
-}
-
-void MainWindow::openMediaFile()
+void TestWindow::openMediaFile()
 {
     static const QString filter = tr(
         "Media Files (*.mp4 *.mov *.m4v *.avi *.mkv *.png *.jpg *.jpeg *.tiff *.tif *.bmp *.gif);;"
@@ -237,15 +210,34 @@ void MainWindow::openMediaFile()
     if (filePath.isEmpty())
         return;
 
+    if (!_mediaWindow) {
+        _mediaWindow = new QWidget(nullptr, Qt::Window);
+        _mediaWindow->setAttribute(Qt::WA_DeleteOnClose);
+        _mediaWindow->setWindowTitle(tr("Media Preview"));
+        _mediaWindow->resize(800, 600);
+        _sourceDisplay = new SourceDisplay(_mediaWindow);
+        auto* layout = new QVBoxLayout(_mediaWindow);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->addWidget(_sourceDisplay);
+        connect(_mediaWindow, &QWidget::destroyed, this, [this]() {
+            _mediaWindow = nullptr;
+            _sourceDisplay = nullptr;
+        });
+    }
+
     const QMimeDatabase mimeDb;
     const QString mimeType = mimeDb.mimeTypeForFile(filePath).name();
 
     if (mimeType.startsWith("video/"))
-        _display->setVideoSource(filePath);
+        _sourceDisplay->setVideoSource(filePath);
     else
-        _display->setImageSource(filePath);
+        _sourceDisplay->setImageSource(filePath);
 
-    setWindowTitle(tr("Pulse Pro — %1").arg(QFileInfo(filePath).fileName()));
+    _mediaWindow->setWindowTitle(tr("Media Preview — %1").arg(QFileInfo(filePath).fileName()));
+    _mediaWindow->show();
+    _mediaWindow->raise();
+    _mediaWindow->resize(640, 360);
+
 }
 
 } // namespace pulse
